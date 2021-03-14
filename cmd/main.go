@@ -23,7 +23,7 @@ type cmdArgs struct {
     path          string // exec file path
     args          string // exec args
     user          string // exec user
-    level         string
+    log           string
     uid, gid      int
     in, out, eOut string // child process input and output
     iFd, oFd, eFd uintptr
@@ -42,7 +42,7 @@ func init() {
     flag.StringVar(&cmd.out, "out", "", "(optional) target program output")
     flag.StringVar(&cmd.eOut, "err", "", "(optional) target program error output")
     flag.UintVar(&cmd.port, "port", 0, "(optional) web server port, default use random port")
-    flag.StringVar(&cmd.level, "log", "", "(optional) log level(info debug warn error), default: info")
+    flag.StringVar(&cmd.log, "log", "", "(optional) log log(info debug warn error), default: info")
     flag.StringVar(&cmd.args, "arg", "", "(optional) transform program parameter, split by space, default: ''")
 
     flag.Parse()
@@ -76,7 +76,7 @@ func closeHandle() {
 }
 
 func preProcessing(c *cmdArgs) {
-    if e := log.SetConfigLevel(c.level); e != nil {
+    if e := log.SetConfigLevel(c.log); e != nil {
         flag.Usage()
         log.Error(e)
     }

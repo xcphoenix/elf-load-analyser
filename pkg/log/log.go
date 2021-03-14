@@ -1,10 +1,13 @@
 package log
 
 import (
+    "bytes"
     "fmt"
     "io"
     "log"
     "os"
+    "runtime"
+    "strings"
 )
 
 type Level int8
@@ -25,9 +28,6 @@ var (
     warnLogger  logger = newBaseLogger(WLevel, os.Stdout, "W ", defaultFlags).SetHandle(warn)
     errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetHandle(err)
 )
-
-// TODO
-//   - Get file, line use: `_, file, line, _ := runtime.Caller(0)`
 
 type logger interface {
     Level() Level
@@ -74,16 +74,12 @@ func (b *baseLogger) SetHandle(handle func(s string) string) *baseLogger {
 }
 
 func (b baseLogger) Log(a interface{}) {
-    var beforeMsg, afterMsg string
-    afterMsg = fmt.Sprint(a)
+    message := fmt.Sprint(a)
+    wrapMsg := message
     if b.handle != nil {
-        beforeMsg = b.handle(afterMsg)
+        wrapMsg = b.handle(message)
     }
-    if len(beforeMsg) > 0 {
-        b.log.Println(beforeMsg)
-    } else {
-        b.log.Println(afterMsg)
-    }
+    b.log.Println(wrapMsg)
 }
 
 func (b baseLogger) Logf(format string, a ...interface{}) {
@@ -130,12 +126,47 @@ func Errorf(format string, a ...interface{}) {
 
 func innerLog(log logger, a interface{}) {
     if log.Level() >= ConfigLevel() {
-        log.Log(a)
+        log.Log(appendPkgLine(a))
     }
 }
 
 func innerLogf(log logger, format string, a ...interface{}) {
     if log.Level() >= ConfigLevel() {
-        log.Logf(format, a...)
+        log.Logf(appendPkgLine(format), a...)
     }
+}
+
+// #2
+func appendPkgLine(a interface{}) string {
+    pkg := getPkgLine()
+    return fmt.Sprintf("%-9s - %v", pkg, a)
+}
+
+// #1
+// NOTE: cache pkg
+func getPkgLine() (pkg string) {
+    _, pkg, _, _ = runtime.Caller(4)
+    pkgPrefix, cmdPrefix := "pkg", "cmd"
+    if idx := strings.LastIndex(pkg, "/"); idx != -1 {
+        pkg = pkg[:idx]
+    }
+    if idx := strings.Index(pkg, pkgPrefix); idx != -1 {
+        pkg = pkg[idx+len(pkgPrefix)+1:]
+    } else if idx := strings.Index(pkg, cmdPrefix); idx != -1 {
+        pkg = pkg[idx:]
+    }
+    if strings.ContainsRune(pkg, '/') {
+        var buf bytes.Buffer
+        pkgList := strings.Split(pkg, "/")
+        for i := range pkgList {
+            if i != len(pkgList)-1 {
+                buf.WriteString(pkgList[i][0:1])
+                buf.WriteRune('/')
+            } else {
+                buf.WriteString(pkgList[i])
+            }
+        }
+        return buf.String()
+    }
+    return
 }
