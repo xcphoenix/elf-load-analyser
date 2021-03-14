@@ -4,7 +4,7 @@ import (
     "debug/elf"
     "fmt"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/markdown"
+    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
     "github.com/phoenixxc/elf-load-analyser/pkg/log"
     "github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
     "os"
@@ -29,16 +29,17 @@ func NewElfRender(filepath string) (*ElfRender, error) {
     return &ElfRender{filepath: filepath, f: eFile}, nil
 }
 
-func (e *ElfRender) Render() (d *Data, err error) {
-    fHeader := markdown.NewTitleContents(markdown.H2, "ELF File Header").Append(e.buildHeader())
-    fProgHeader := markdown.NewTitleContents(markdown.H2, "ELF Prog Header").Append(e.buildProgHeader())
-    content := fHeader.Append(fProgHeader).
-        // exec file no static rel section
-        // Append(e.buildStaticData()).
-        Append(e.buildDynamicData())
+func (e *ElfRender) Render() (d *data.AnalyseData, err error) {
+    renderRes := content.NewContentSet(
+        content.NewTitleMarkdown(content.H2, "ELF File Header"),
+        e.buildHeader(),
+        content.NewTitleMarkdown(content.H2, "ELF Prog Header"),
+        e.buildProgHeader(),
+        e.buildDynamicData(),
+    )
 
     t := e.Type()
-    d = NewData(data.NewAnalyseData(t.Name, content).WithID(t.ID))
+    d = data.NewAnalyseData(t.Name, renderRes).WithID(t.ID)
     return
 }
 
@@ -50,83 +51,85 @@ func (e *ElfRender) Release() {
     _ = e.f.Close()
 }
 
-func (e *ElfRender) buildHeader() markdown.Interface {
+func (e *ElfRender) buildHeader() data.Content {
     header := e.f.FileHeader
 
-    table := markdown.NewTable("MEMBER", "VALUE").
+    table := content.NewTable("MEMBER", "VALUE").
         WithDesc(fmt.Sprintf("table 1: file %q header, for more information, see: %q", e.filepath, "readelf -h ..."))
-    table.AddRow("Class", header.Class.String()).
-        AddRow("data", header.Data.String()).
-        AddRow("ByteOrder", header.ByteOrder.String()).
-        AddRow("Version", header.Version.String()).
-        AddRow("Os/ABI", header.OSABI.String()).
+    table.AddRow("Class", header.Class).
+        AddRow("data", header.Data).
+        AddRow("ByteOrder", header.ByteOrder).
+        AddRow("Version", header.Version).
+        AddRow("Os/ABI", header.OSABI).
         AddRow("ABI Version", strconv.Itoa(int(header.ABIVersion))).
-        AddRow("Type", header.Type.String()).
-        AddRow("Machine", header.Machine.String()).
-        AddRow("Version", header.Version.String()).
+        AddRow("Type", header.Type).
+        AddRow("Machine", header.Machine).
+        AddRow("Version", header.Version).
         AddRow("Entry", convertAddr(header.Entry))
     return table
 }
 
-func (e *ElfRender) buildProgHeader() markdown.Interface {
+func (e *ElfRender) buildProgHeader() data.Content {
     ph := e.f.Progs
 
-    table := markdown.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
-        WithDesc(fmt.Sprintf("table 2: file %q program headers, for more information, see: %q", e.filepath, "readelf -l ..."))
+    table := content.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
+        WithDesc(fmt.Sprintf("table 2: file %q program headers, for more information, see: %q", e.filepath, "readelf -l ...")).
+        SetHandler(convertRow)
     for _, prog := range ph {
-        row := make([]string, table.Col())
-        convertRow(row, prog.Type, prog.Off, prog.Filesz, prog.Vaddr, prog.Memsz, prog.Paddr, prog.Flags, prog.Align)
-        table.AddRow(row...)
+        table.AddRow(prog.Type, prog.Off, prog.Filesz, prog.Vaddr, prog.Memsz, prog.Paddr, prog.Flags, prog.Align)
     }
 
     return table
 }
 
-func (e *ElfRender) buildStaticData() markdown.Interface {
+func (e *ElfRender) buildStaticData() data.Content {
     sectionRels, err := xelf.BuildRelIf(e.f, false)
     if err != nil {
         log.Warnf("Get static rel data from elf file failed: %v", err)
-        return markdown.EmptyIf
+        return data.EmptyContent
     }
     if len(sectionRels) == 0 {
-        return markdown.EmptyIf
+        return data.EmptyContent
     }
 
-    mk := markdown.NewTitleContents(markdown.H3, "Static relocation info")
+    mk := content.NewContentSet(content.NewTitleMarkdown(content.H3, "Static relocation info"))
     for _, rel := range sectionRels {
-        mk.Append(relSecToMarkdown(rel))
+        mk.Combine(relSecToMarkdown(rel))
     }
     return mk
 }
 
-func (e *ElfRender) buildDynamicData() markdown.Interface { //nolint:funlen
+func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
     dynInfo, err := xelf.BuildDynamicInfo(e.f)
     if err != nil {
         log.Warnf("Get static rel data from elf file failed: %v", err)
-        return markdown.EmptyIf
+        return data.EmptyContent
     }
 
-    mk := markdown.NewTitleContents(markdown.H2, "Dynamic info").
-        Append(markdown.NewTitleContents(markdown.H3, "interp").WithContents(dynInfo.Interp))
+    resContent := content.NewContentSet()
 
-    symTableContent := markdown.NewTitleContents(markdown.H3, "dynamic symbols")
+    // info
+    resContent.Combine(content.NewTitleMarkdown(content.H2, "Dynamic info").
+        Append(content.NewTitleMarkdown(content.H3, "interp").WithContents(dynInfo.Interp)))
+
+    // dynamic symbol
+    symContent := content.NewTitleMarkdown(content.H3, "dynamic symbols")
     if syms := dynInfo.Symbols; len(syms) == 0 {
-        symTableContent.WithContents("no data")
+        resContent.Combine(symContent.WithContents("no data"))
     } else {
-        symTable := markdown.NewTable("Name", "Section", "Value", "Size", "Library", "Version")
+        symTable := content.NewTable("Name", "Section", "Value", "Size", "Library", "Version").SetHandler(convertRow)
         for _, symbol := range syms {
-            row := make([]string, symTable.Col())
-            convertRow(row, symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
-            symTable.AddRow(row...)
+            symTable.AddRow(symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
         }
-        symTableContent.Append(symTable)
+        resContent.Combine(symContent).Combine(symTable)
     }
 
-    tag2DynContent := markdown.NewTitleContents(markdown.H3, "dyn string")
+    // dyn
+    tag2DynContent := content.NewTitleMarkdown(content.H3, "dyn string")
     if t2d := dynInfo.Tag2Dyn; len(dynInfo.Tag2Dyn) == 0 {
-        tag2DynContent.WithContents("No data")
+        resContent.Combine(tag2DynContent.WithContents("No data"))
     } else {
-        tag2DynTable := markdown.NewTable("Tag", "String")
+        tag2DynTable := content.NewTable("Tag", "Data")
         for tag, strList := range t2d {
             if len(strList) == 0 {
                 continue
@@ -136,72 +139,68 @@ func (e *ElfRender) buildDynamicData() markdown.Interface { //nolint:funlen
                 tag2DynTable.AddRow(tagStr, str)
             }
         }
-        tag2DynContent.Append(tag2DynTable)
+        resContent.Combine(tag2DynContent).Combine(tag2DynTable)
     }
 
-    importSymsContent := markdown.NewTitleContents(markdown.H3, "import symbols")
+    // import symbol
+    importSymsContent := content.NewTitleMarkdown(content.H3, "import symbols")
     if iSym := dynInfo.ImportedSymbols; len(iSym) == 0 {
-        importSymsContent.WithContents("no data")
+        resContent.Combine(importSymsContent.WithContents("no data"))
     } else {
-        importSymsTable := markdown.NewTable("Name", "Version", "Library")
+        importSymsTable := content.NewTable("Name", "Version", "Library")
         for _, symbol := range iSym {
             importSymsTable.AddRow(symbol.Name, symbol.Version, symbol.Library)
         }
-        importSymsContent.Append(importSymsTable)
+        resContent.Combine(importSymsContent).Combine(importSymsTable)
     }
 
-    relSecs := markdown.NewTitleContents(markdown.H3, "Dynamic relocation sections")
+    relSecs := content.NewTitleMarkdown(content.H3, "Dynamic relocation sections")
     if rss := dynInfo.RelSections; len(rss) == 0 {
-        relSecs.WithContents("No data")
+        resContent.Combine(relSecs.WithContents("No data"))
     } else {
+        resContent.Combine(relSecs)
         for _, rel := range rss {
-            relSecs.Append(relSecToMarkdown(rel))
+            resContent.Combine(relSecToMarkdown(rel))
         }
     }
 
-    mk.Append(symTableContent).Append(tag2DynContent).Append(importSymsContent).Append(relSecs)
-    return mk
+    return resContent
 }
 
-func relSecToMarkdown(rSec xelf.RelSection) markdown.Interface {
+func relSecToMarkdown(rSec xelf.RelSection) data.Content {
     sec := rSec.Section
-    mk := markdown.NewTitleContents(markdown.H4, "Relocation Section ["+sec.Name+"]")
-    secTable := markdown.NewTable("Name", "Type", "Flags", "Addr", "Offset",
-        "Size", "Link", "Info", "Addralign", "Entsize", "FileSize")
-    row := make([]string, secTable.Col())
-    convertRow(row, sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
+    mk := content.NewContentSet(content.NewTitleMarkdown(content.H4, "Relocation Section ["+sec.Name+"]"))
+    secTable := content.NewTable("Name", "Type", "Flags", "Addr", "Offset",
+        "Size", "Link", "Info", "Addralign", "Entsize", "FileSize").SetHandler(convertRow)
+    secTable.AddRow(sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
         sec.Addralign, sec.Entsize, sec.FileSize)
-    secTable.AddRow(row...)
-    mk.Append(secTable).
-        Append(relsToMarkdown(rSec.Rels))
+    mk.Combine(secTable).Combine(relsToMarkdown(rSec.Rels))
     return mk
 }
 
-func relsToMarkdown(rels []xelf.RelDecoded) markdown.Interface {
+func relsToMarkdown(rels []xelf.RelDecoded) data.Content {
     if len(rels) == 0 {
-        return markdown.EmptyIf
+        return data.EmptyContent
     }
-    relTable := markdown.NewTable("Offset", "Type", "Value")
+    relTable := content.NewTable("Offset", "Type", "Value")
     for _, rel := range rels {
         relTable.AddRow(convertAddr(rel.Offset), rel.XType, rel.Value)
     }
     return relTable
 }
 
-func convertRow(row []string, d ...interface{}) {
-    for i := range d {
-        val := d[i]
-        switch val := val.(type) {
-        case uint64:
-            row[i] = convertAddr(val)
-        case uint32:
-            row[i] = convertAddr(uint64(val))
-        case string:
-            row[i] = val
-        case fmt.Stringer:
-            row[i] = val.String()
-        }
+func convertRow(val interface{}) (string, bool) {
+    switch val := val.(type) {
+    case uint64:
+        return convertAddr(val), true
+    case uint32:
+        return convertAddr(uint64(val)), true
+    case string:
+        return val, true
+    case fmt.Stringer:
+        return val.String(), true
     }
+    return "", false
 }
 
 func convertAddr(addr uint64) string {

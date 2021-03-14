@@ -1,10 +1,10 @@
 package render
 
-import (
-    "fmt"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "time"
-)
+import "github.com/phoenixxc/elf-load-analyser/pkg/data"
+
+type Content struct {
+    Filepath string
+}
 
 type Type struct {
     ID   string
@@ -18,60 +18,13 @@ var (
 )
 
 type Render interface {
-    Render() (*Data, error)
+    Render() (*data.AnalyseData, error)
     Type() Type
     Release()
 }
 
-func doRender(r Render) (d *Data, e error) {
+func doRender(r Render) (d *data.AnalyseData, e error) {
     d, e = r.Render()
     r.Release()
     return
-}
-
-type Content struct {
-    Filepath string
-}
-
-/* Reformat render data structure */
-
-type JSONTime time.Time
-
-func (t JSONTime) MarshalJSON() ([]byte, error) {
-    stamp := fmt.Sprintf("\"%s\"", time.Time(t).Format("15:04:05.000000"))
-    return []byte(stamp), nil
-}
-
-type Data struct {
-    ID        string            `json:"id"`
-    Name      string            `json:"name"`
-    Status    int               `json:"status"`
-    Desc      string            `json:"desc"`
-    GTime     JSONTime          `json:"time"`
-    Data      string            `json:"data"`
-    GType     int               `json:"type"`
-    DataList  []*Data           `json:"dataList"`
-    ExtraData map[string]string `json:"extra"`
-}
-
-func NewData(d *data.AnalyseData) *Data {
-    renderData := &Data{
-        ID:        d.ID,
-        Name:      d.Name,
-        Status:    int(d.Status),
-        Desc:      d.Desc,
-        GTime:     JSONTime(d.Timestamp),
-        ExtraData: d.Extra,
-    }
-    if d.Data != nil {
-        renderData.Data = d.Data.Data
-        renderData.GType = int(d.Data.Class)
-    }
-    if d.DataList != nil {
-        renderData.DataList = []*Data{}
-        for _, analyseData := range d.DataList {
-            renderData.DataList = append(renderData.DataList, NewData(analyseData))
-        }
-    }
-    return renderData
 }

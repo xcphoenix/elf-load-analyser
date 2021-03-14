@@ -4,7 +4,7 @@ import (
     _ "embed" // for embed bcc source
     "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/markdown"
+    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -17,7 +17,7 @@ type bprmExecveEvent struct {
 }
 
 func (a bprmExecveEvent) Render() *data.AnalyseData {
-    return data.NewAnalyseData("", markdown.NewTextContent("execve"))
+    return data.NewAnalyseData("", content.NewMarkdown("execve"))
 }
 
 type bprmExecve struct {

@@ -56,7 +56,7 @@ func (t timeEnhancer) AfterHandle(tCtx *modules.TableCtx,
             SendNs(NewNsMap(ns))
         } else {
             log.Debugf("%s ==> %s amend timestamp", timeEnhancerName, tCtx.Name)
-            aData.Timestamp = AmendTime(ns)
+            aData.XTime = data.JSONTime(AmendTime(ns))
         }
         aData.RmExtra(kernelBootNsKey)
     }

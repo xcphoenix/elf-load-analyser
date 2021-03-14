@@ -2,7 +2,6 @@ package factory
 
 import (
     "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data"
     "github.com/phoenixxc/elf-load-analyser/pkg/log"
     "sync"
     "time"
@@ -18,9 +17,9 @@ func Register(monitor *bcc.Monitor) {
 }
 
 // LoadMonitors ctx The run context, ctr control the process when to stop
-func LoadMonitors(ctx bcc.Context) (p *data.Pool, ok <-chan struct{}) {
+func LoadMonitors(ctx bcc.Context) (p *Pool, ok <-chan struct{}) {
     ready, o := make(chan struct{}), make(chan struct{})
-    p, ok = data.NewPool(), o
+    p, ok = NewPool(), o
     ch := p.Chan()
     p.Init()
 

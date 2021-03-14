@@ -4,10 +4,11 @@ import (
     "debug/elf"
     "errors"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
+    "github.com/phoenixxc/elf-load-analyser/pkg/factory"
     "github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
-var dataCenter = make([]*Data, 3)
+var dataCenter = make([]*data.AnalyseData, 3)
 
 func PreAnalyse(ctx Content) {
     // env
@@ -20,14 +21,14 @@ func PreAnalyse(ctx Content) {
         if ok := errors.As(e, &formatErr); ok {
             log.Errorf("Invalid elf file, %v", e)
         } else {
-            log.Errorf("Analyse target binary format error, %v", e)
+            log.Errorf("Analyse target binary content error, %v", e)
         }
     }
     d, _ = doRender(elfRender)
     dataCenter[1] = d
 }
 
-func DoAnalyse(p *data.Pool) []*Data {
+func DoAnalyse(p *factory.Pool) []*data.AnalyseData {
     d, err := doRender(NewAnalyseRender(p.Data()))
     if err != nil {
         log.Errorf("Render analyse data error, %v", err)

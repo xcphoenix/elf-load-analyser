@@ -1,16 +1,18 @@
-package data
+package factory
 
 import (
+    data2 "github.com/phoenixxc/elf-load-analyser/pkg/data"
     "sort"
     "sync"
+    "time"
 )
 
 type Pool struct {
     mu    sync.Mutex
     order bool
-    ch    chan *AnalyseData
+    ch    chan *data2.AnalyseData
     exit  chan struct{}
-    data  []*AnalyseData
+    data  []*data2.AnalyseData
 }
 
 func (p *Pool) Len() int {
@@ -18,7 +20,7 @@ func (p *Pool) Len() int {
 }
 
 func (p *Pool) Less(i, j int) bool {
-    return p.data[i].Timestamp.Before(p.data[j].Timestamp)
+    return time.Time(p.data[i].XTime).Before(time.Time(p.data[j].XTime))
 }
 
 func (p *Pool) Swap(i, j int) {
@@ -27,14 +29,14 @@ func (p *Pool) Swap(i, j int) {
 }
 
 func NewPool() *Pool {
-    return &Pool{ch: make(chan *AnalyseData), exit: make(chan struct{}), data: make([]*AnalyseData, 0), order: false}
+    return &Pool{ch: make(chan *data2.AnalyseData), exit: make(chan struct{}), data: make([]*data2.AnalyseData, 0), order: false}
 }
 
-func (p *Pool) Chan() chan<- *AnalyseData {
+func (p *Pool) Chan() chan<- *data2.AnalyseData {
     return p.ch
 }
 
-func (p *Pool) Data() []*AnalyseData {
+func (p *Pool) Data() []*data2.AnalyseData {
     <-p.exit
     if !p.order {
         p.mu.Lock()

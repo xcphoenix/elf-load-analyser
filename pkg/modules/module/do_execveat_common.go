@@ -5,7 +5,7 @@ import (
     "fmt"
     "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/markdown"
+    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -22,7 +22,7 @@ type execveatComEvent struct {
 
 func (e execveatComEvent) Render() *data.AnalyseData {
     s := data.TrimBytes2Str(e.Filename[:])
-    var msg = markdown.NewList(
+    var msg = content.NewList(
         fmt.Sprintf("fd = %d", e.Fd),
         fmt.Sprintf("flags = %d", e.Flags),
         fmt.Sprintf("filename = %s", s),

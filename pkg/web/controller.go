@@ -3,6 +3,7 @@ package web
 import (
     "errors"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
+    "github.com/phoenixxc/elf-load-analyser/pkg/factory"
     "github.com/phoenixxc/elf-load-analyser/pkg/log"
     "github.com/phoenixxc/elf-load-analyser/pkg/render"
     "net"
@@ -12,16 +13,16 @@ import (
 )
 
 var (
-    analyseDataCenter []*render.Data
+    analyseDataCenter []*data.AnalyseData
 )
 
 // VisualAnalyseData 数据展示
-func VisualAnalyseData(p *data.Pool, port uint) {
+func VisualAnalyseData(p *factory.Pool, port uint) {
     renderedData := render.DoAnalyse(p)
     go startWebService(renderedData, port)
 }
 
-func startWebService(d []*render.Data, port uint) {
+func startWebService(d []*data.AnalyseData, port uint) {
     analyseDataCenter = d
     http.Handle("/", FrontedService())
     http.HandleFunc("/api/report", AnalyseReportService)

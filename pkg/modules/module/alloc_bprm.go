@@ -5,7 +5,7 @@ import (
     "fmt"
     "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/markdown"
+    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules"
     "github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -30,7 +30,7 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
         " rlimit stack max: 0x%X, current of top mem: 0x%X",
         data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
         a.RlimCur, a.RlimMax, a.CurTopOfMem)
-    return data.NewAnalyseData("", markdown.NewTextContent(s))
+    return data.NewAnalyseData("", content.NewMarkdown(s))
 }
 
 type allocBprm struct {

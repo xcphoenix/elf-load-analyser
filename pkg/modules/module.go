@@ -83,7 +83,7 @@ func enhanceStructField(ptr interface{}, d *data.AnalyseData) {
         v = reflect.ValueOf(ptr).Elem()
     }
     if reType.Kind() != reflect.Struct {
-        panic("Invalid type" + reType.Kind().String())
+        panic("invalid type" + reType.Kind().String())
     }
     parseField(v, d)
 }

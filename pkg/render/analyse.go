@@ -12,9 +12,9 @@ func NewAnalyseRender(dataList []*data.AnalyseData) *AnalyseRender {
     return &AnalyseRender{dataList: dataList}
 }
 
-func (a AnalyseRender) Render() (*Data, error) {
+func (a AnalyseRender) Render() (*data.AnalyseData, error) {
     t := a.Type()
-    return NewData(data.NewListAnalyseData(t.ID, t.Name, a.dataList)), nil
+    return data.NewListAnalyseData(t.ID, t.Name, a.dataList), nil
 }
 
 func (a AnalyseRender) Type() Type {
