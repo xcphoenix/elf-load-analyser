@@ -23,7 +23,7 @@ func (e *EnvRender) Render() (*data.AnalyseData, error) {
         content.NewList(os.Environ()...),
     )
 
-    return data.NewAnalyseData(t.Name, envContent).WithID(t.ID), nil
+    return data.NewAnalyseData(envContent).WithName(t.Name).WithID(t.ID), nil
 }
 
 func (e *EnvRender) Type() Type {

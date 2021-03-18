@@ -25,9 +25,8 @@ func CheckEnv() {
     helper.EqualWithTip("linux", os, "Unsupported platform, just work on linux")
 
     // Check kernel version
-    helper.WithTip("4.1", GetKernelVersion(),
-        func(expected, actual interface{}) bool {
-            return actual.(string) >= expected.(string)
+    helper.WithTip("4.1", GetKernelVersion(), func(e, a interface{}) bool {
+            return a.(string) >= e.(string)
         },
         "Kernel version too old, linux kernel version 4.1 or newer is required\n"+
             "You can see \"https://github.com/iovisor/bcc/blob/master/INSTALL.md\"",

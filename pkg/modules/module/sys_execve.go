@@ -16,7 +16,7 @@ type sysExecveEvent struct {
 }
 
 func (e sysExecveEvent) Render() *data.AnalyseData {
-    return data.NewAnalyseData("", content.NewMarkdown("start call"))
+    return data.NewAnalyseData(content.NewMarkdown("start call"))
 }
 
 type sysExecveRetEvent struct {
@@ -26,9 +26,9 @@ type sysExecveRetEvent struct {
 
 func (s sysExecveRetEvent) Render() *data.AnalyseData {
     if s.Ret != 0 {
-        return data.NewErrAnalyseData("", data.RuntimeError, fmt.Sprintf("execve failed, return %d", s.Ret))
+        return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
     }
-    return data.NewAnalyseData("", content.NewMarkdown("execve success"))
+    return data.NewAnalyseData(content.NewMarkdown("execve success"))
 }
 
 //go:embed src/execve.cpp.k

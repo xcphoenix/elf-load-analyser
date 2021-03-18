@@ -65,14 +65,6 @@ func (m *Markdown) WithContents(content ...string) *Markdown {
     return m
 }
 
-func (m *Markdown) WithList(content ...string) *Markdown {
-    wrapContent := make([]string, len(content))
-    for i := range content {
-        wrapContent[i] = "- " + content[i]
-    }
-    return m.WithContents(wrapContent...)
-}
-
 func (m *Markdown) Append(am *Markdown) *Markdown {
     if len(am.title) == 0 && len(am.content) == 0 && len(am.appendContent) == 0 {
         return m

@@ -17,7 +17,7 @@ type bprmExecveEvent struct {
 }
 
 func (a bprmExecveEvent) Render() *data.AnalyseData {
-    return data.NewAnalyseData("", content.NewMarkdown("execve"))
+    return data.NewAnalyseData(content.NewMarkdown("execve"))
 }
 
 type bprmExecve struct {

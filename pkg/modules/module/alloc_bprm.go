@@ -30,7 +30,7 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
         " rlimit stack max: 0x%X, current of top mem: 0x%X",
         data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
         a.RlimCur, a.RlimMax, a.CurTopOfMem)
-    return data.NewAnalyseData("", content.NewMarkdown(s))
+    return data.NewAnalyseData(content.NewMarkdown(s))
 }
 
 type allocBprm struct {

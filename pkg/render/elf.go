@@ -39,7 +39,7 @@ func (e *ElfRender) Render() (d *data.AnalyseData, err error) {
     )
 
     t := e.Type()
-    d = data.NewAnalyseData(t.Name, renderRes).WithID(t.ID)
+    d = data.NewAnalyseData(renderRes).WithName(t.Name).WithID(t.ID)
     return
 }
 
@@ -121,7 +121,7 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
         for _, symbol := range syms {
             symTable.AddRow(symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
         }
-        resContent.Combine(symContent).Combine(symTable)
+        resContent.Combine(symContent, symTable)
     }
 
     // dyn
@@ -139,7 +139,7 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
                 tag2DynTable.AddRow(tagStr, str)
             }
         }
-        resContent.Combine(tag2DynContent).Combine(tag2DynTable)
+        resContent.Combine(tag2DynContent, tag2DynTable)
     }
 
     // import symbol
@@ -151,7 +151,7 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
         for _, symbol := range iSym {
             importSymsTable.AddRow(symbol.Name, symbol.Version, symbol.Library)
         }
-        resContent.Combine(importSymsContent).Combine(importSymsTable)
+        resContent.Combine(importSymsContent, importSymsTable)
     }
 
     relSecs := content.NewTitleMarkdown(content.H3, "Dynamic relocation sections")
@@ -174,7 +174,7 @@ func relSecToMarkdown(rSec xelf.RelSection) data.Content {
         "Size", "Link", "Info", "Addralign", "Entsize", "FileSize").SetHandler(convertRow)
     secTable.AddRow(sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
         sec.Addralign, sec.Entsize, sec.FileSize)
-    mk.Combine(secTable).Combine(relsToMarkdown(rSec.Rels))
+    mk.Combine(secTable, relsToMarkdown(rSec.Rels))
     return mk
 }
 

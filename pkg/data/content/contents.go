@@ -35,10 +35,14 @@ func (c *Set) Data() (res interface{}) {
     return contentDataList
 }
 
-func (c *Set) Combine(content data.Content) *Set {
-    if content == data.EmptyContent {
+func (c *Set) Combine(contents ...data.Content) *Set {
+    if len(contents) == 0 {
         return c
     }
-    c.contents = append(c.contents, content)
+    for i := range contents {
+        if contents[i] != data.EmptyContent {
+            c.contents = append(c.contents, contents[i])
+        }
+    }
     return c
 }
