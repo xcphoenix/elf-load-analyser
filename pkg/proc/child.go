@@ -15,8 +15,8 @@ import (
 )
 
 const (
-    ChildFlagEnv  = "_CHILD_46cf632ae5fb1e8cbb556aa49964ac7d"
-    ChildArgsFlag = "_ARGS_51cee58d2009745b72acb79005a881e4"
+    childFlagEnv  = "_CHILD_46cf632ae5fb1e8cbb556aa49964ac7d"
+    childArgsFlag = "_ARGS_51cee58d2009745b72acb79005a881e4"
 )
 
 var procArg = struct {
@@ -29,7 +29,7 @@ var procArg = struct {
     iFile, oFile, eFile string
     iFd, oFd, eFd       uintptr
 
-    needClosedFile      []*os.File
+    needClosedFile []*os.File
 }{}
 
 var XFlagSet = core.InjectFlag(&procArg.args, "args", "", "(optional) program parameter, split by space", nil).
@@ -48,19 +48,16 @@ var XFlagSet = core.InjectFlag(&procArg.args, "args", "", "(optional) program pa
         return
     })
 
-func ExecProcess(execPath string) {
-    // wait until parent load bcc modules ok
-    startSignals := make(chan os.Signal, 1)
-    signal.Notify(startSignals, syscall.SIGUSR1)
-    <-startSignals
+func GetProgPath() string {
+    return procArg.path
+}
 
-    argsEnv, _ := os.LookupEnv(ChildArgsFlag)
-    execArgs := []string{execPath}
-    execArgs = append(execArgs, strings.Fields(argsEnv)...)
-    if err := syscall.Exec(execPath, execArgs, os.Environ()); err != nil {
-        log.Errorf("Call binary failed, %v", err)
+func ControlDetach() {
+    transExecPath, isChild := os.LookupEnv(childFlagEnv)
+    if isChild {
+        execProcess(transExecPath)
+        return
     }
-    os.Exit(0)
 }
 
 func CreateProcess() int {
@@ -71,8 +68,8 @@ func CreateProcess() int {
     if err != nil {
         log.Errorf("Get pwd error, %v", err)
     }
-    childEnvItem := fmt.Sprintf("%s=%s", ChildFlagEnv, procArg.path)
-    childArgItem := fmt.Sprintf("%s=%s", ChildArgsFlag, strings.TrimSpace(execArgs))
+    childEnvItem := fmt.Sprintf("%s=%s", childFlagEnv, procArg.path)
+    childArgItem := fmt.Sprintf("%s=%s", childArgsFlag, strings.TrimSpace(execArgs))
     childPID, err := syscall.ForkExec(args[0], args, &syscall.ProcAttr{ //nolint:gosec
         Dir: pwd,
         Env: append(os.Environ(), childEnvItem, childArgItem),
@@ -100,6 +97,21 @@ func WakeUpChild(childPID int) {
     }
 }
 
+func execProcess(execPath string) {
+    // wait until parent load bcc modules ok
+    startSignals := make(chan os.Signal, 1)
+    signal.Notify(startSignals, syscall.SIGUSR1)
+    <-startSignals
+
+    argsEnv, _ := os.LookupEnv(childArgsFlag)
+    execArgs := []string{execPath}
+    execArgs = append(execArgs, strings.Fields(argsEnv)...)
+    if err := syscall.Exec(execPath, execArgs, os.Environ()); err != nil {
+        log.Errorf("Call binary failed, %v", err)
+    }
+    os.Exit(0)
+}
+
 func userHandle() error {
     s := strings.TrimSpace(procArg.user)
     if len(s) != 0 {
@@ -120,7 +132,7 @@ func pathHandle() error {
     }
     absPath, err := filepath.Abs(procArg.path)
     if err != nil {
-        return fmt.Errorf("invalid path, %v", err)
+        return fmt.Errorf("invalid path, %w", err)
     }
     procArg.path = absPath
 
@@ -142,7 +154,7 @@ func getFd(file string, read bool, other uintptr) (uintptr, error) {
         f, e = os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
     }
     if e != nil {
-        return 0, fmt.Errorf("open %s error: %v", file, e)
+        return 0, fmt.Errorf("open %s error: %w", file, e)
     }
     procArg.needClosedFile = append(procArg.needClosedFile, f)
     return f.Fd(), nil

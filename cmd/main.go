@@ -1,7 +1,6 @@
 package main
 
 import (
-    "flag"
     "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
     "github.com/phoenixxc/elf-load-analyser/pkg/core"
     "github.com/phoenixxc/elf-load-analyser/pkg/env"
@@ -22,9 +21,11 @@ func init() {
 }
 
 func main() {
-    preProcessing()
+    proc.ControlDetach()
+    env.EchoBanner()
     env.CheckEnv()
-    render.PreAnalyse(render.NewCtx(flag.Lookup("path").Value.String()))
+
+    render.PreAnalyse(render.NewCtx(proc.GetProgPath()))
 
     childPID := proc.CreateProcess()
 
@@ -39,15 +40,4 @@ func main() {
     <-exit
 
     // TODO 中止的资源回收操作由状态机触发
-}
-
-func preProcessing() {
-    // child
-    transExecPath, isChild := os.LookupEnv(proc.ChildFlagEnv)
-    if isChild {
-        proc.ExecProcess(transExecPath)
-        return
-    }
-    // banner
-    env.EchoBanner()
 }
