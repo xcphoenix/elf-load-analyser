@@ -27,8 +27,12 @@ func (t Type) String() (name string) {
     return
 }
 
-type Context struct {
+type Ctx struct {
     Pid int
+}
+
+func NewCtx(pid int) *Ctx {
+    return &Ctx{Pid: pid}
 }
 
 type action interface {
@@ -77,7 +81,7 @@ func (m *Monitor) initialize() *bpf.Module {
 }
 
 // PreProcessing 预处理
-func (m *Monitor) PreProcessing(ctx Context) error {
+func (m *Monitor) PreProcessing(ctx *Ctx) error {
     // PID replace
     m.Source = strings.ReplaceAll(m.Source, "_PID_", strconv.Itoa(ctx.Pid))
     return nil

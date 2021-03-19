@@ -2,6 +2,8 @@ package web
 
 import (
     "errors"
+    "fmt"
+    "github.com/phoenixxc/elf-load-analyser/pkg/core"
     "github.com/phoenixxc/elf-load-analyser/pkg/data"
     "github.com/phoenixxc/elf-load-analyser/pkg/factory"
     "github.com/phoenixxc/elf-load-analyser/pkg/log"
@@ -13,23 +15,32 @@ import (
 )
 
 var (
+    port              uint
     analyseDataCenter []*data.AnalyseData
 )
 
+var XFlagSet = core.InjectFlag(&port, "port", uint(0), "(optional) web server port, default use random",
+    func() error {
+        if port >= 65535 {
+            return fmt.Errorf("invalid port: %v", port)
+        }
+        return nil
+    })
+
 // VisualAnalyseData 数据展示
-func VisualAnalyseData(p *factory.Pool, port uint) {
+func VisualAnalyseData(p *factory.Pool) {
     renderedData := render.DoAnalyse(p)
-    go startWebService(renderedData, port)
+    go startWebService(renderedData)
 }
 
-func startWebService(d []*data.AnalyseData, port uint) {
+func startWebService(d []*data.AnalyseData) {
     analyseDataCenter = d
     http.Handle("/", FrontedService())
     http.HandleFunc("/api/report", AnalyseReportService)
 
     // 程序的主流程，若定义的端口被占用，使用随机端口
 MAIN:
-    addr, err := getAnyFreeAddr(port)
+    addr, err := getAnyFreeAddr()
     if err != nil {
         log.Errorf("Cannot select port to start wev server: %v", err)
     }
@@ -49,7 +60,7 @@ MAIN:
     }
 }
 
-func getAnyFreeAddr(port uint) (string, error) {
+func getAnyFreeAddr() (string, error) {
     if port != 0 {
         return "0.0.0.0:" + strconv.Itoa(int(port)), nil
     }

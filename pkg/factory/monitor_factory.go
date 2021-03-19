@@ -16,8 +16,8 @@ func Register(monitor *bcc.Monitor) {
     factory = append(factory, monitor)
 }
 
-// LoadMonitors ctx The run context, ctr control the process when to stop
-func LoadMonitors(ctx bcc.Context) (p *Pool, ok <-chan struct{}) {
+// LoadMonitors ctx The run context, ctr control the proc when to stop
+func LoadMonitors(ctx *bcc.Ctx) (p *Pool, ok <-chan struct{}) {
     ready, o := make(chan struct{}), make(chan struct{})
     p, ok = NewPool(), o
     ch := p.Chan()

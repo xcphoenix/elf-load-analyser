@@ -3,6 +3,7 @@ package log
 import (
     "bytes"
     "fmt"
+    "github.com/phoenixxc/elf-load-analyser/pkg/core"
     "io"
     "log"
     "os"
@@ -20,7 +21,8 @@ const (
 )
 
 var (
-    currentLevel = ILevel
+    curLevelDesc string
+    currentLevel Level
     defaultFlags = log.Lmicroseconds | log.Ltime
 
     debugLogger logger = newBaseLogger(DLevel, os.Stdout, "D ", defaultFlags).SetHandle(minor)
@@ -28,6 +30,9 @@ var (
     warnLogger  logger = newBaseLogger(WLevel, os.Stdout, "W ", defaultFlags).SetHandle(warn)
     errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetHandle(err)
 )
+
+var XFlagSet = core.InjectFlag(&curLevelDesc, "log", "info",
+    "(optional) log Level[info debug warn error], default: info", setConfigLevel)
 
 type logger interface {
     Level() Level
@@ -39,11 +44,12 @@ func ConfigLevel() Level {
     return currentLevel
 }
 
-func SetConfigLevel(l string) error {
-    if len(l) == 0 {
+func setConfigLevel() error {
+    currentLevel = ILevel
+    if len(curLevelDesc) == 0 {
         return nil
     }
-    switch l {
+    switch curLevelDesc {
     case "debug":
         currentLevel = DLevel
     case "info":
@@ -53,7 +59,7 @@ func SetConfigLevel(l string) error {
     case "error":
         currentLevel = ELevel
     default:
-        return fmt.Errorf("invalid log level %q", l)
+        return fmt.Errorf("invalid log Level %q", curLevelDesc)
     }
     return nil
 }

@@ -10,7 +10,7 @@ import (
 
 var dataCenter = make([]*data.AnalyseData, 3)
 
-func PreAnalyse(ctx Content) {
+func PreAnalyse(ctx *Ctx) {
     // env
     d, _ := doRender(NewEnvRender())
     dataCenter[0] = d
