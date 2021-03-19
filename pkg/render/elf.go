@@ -1,208 +1,208 @@
 package render
 
 import (
-    "debug/elf"
-    "fmt"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
-    "github.com/phoenixxc/elf-load-analyser/pkg/log"
-    "github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
-    "os"
-    "strconv"
+	"debug/elf"
+	"fmt"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
+	"os"
+	"strconv"
 )
 
 type ElfRender struct {
-    filepath string
-    f        *elf.File
+	filepath string
+	f        *elf.File
 }
 
 func NewElfRender(filepath string) (*ElfRender, error) {
-    // file header
-    f, err := os.Open(filepath)
-    if err != nil {
-        return nil, err
-    }
-    eFile, err := elf.NewFile(f)
-    if err != nil {
-        return nil, err
-    }
-    return &ElfRender{filepath: filepath, f: eFile}, nil
+	// file header
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	eFile, err := elf.NewFile(f)
+	if err != nil {
+		return nil, err
+	}
+	return &ElfRender{filepath: filepath, f: eFile}, nil
 }
 
 func (e *ElfRender) Render() (d *data.AnalyseData, err error) {
-    renderRes := content.NewContentSet(
-        content.NewTitleMarkdown(content.H2, "ELF File Header"),
-        e.buildHeader(),
-        content.NewTitleMarkdown(content.H2, "ELF Prog Header"),
-        e.buildProgHeader(),
-        e.buildDynamicData(),
-    )
+	renderRes := content.NewContentSet(
+		content.NewTitleMarkdown(content.H2, "ELF File Header"),
+		e.buildHeader(),
+		content.NewTitleMarkdown(content.H2, "ELF Prog Header"),
+		e.buildProgHeader(),
+		e.buildDynamicData(),
+	)
 
-    t := e.Type()
-    d = data.NewAnalyseData(renderRes).WithName(t.Name).WithID(t.ID)
-    return
+	t := e.Type()
+	d = data.NewAnalyseData(renderRes).WithName(t.Name).WithID(t.ID)
+	return
 }
 
 func (e *ElfRender) Type() Type {
-    return ElfType
+	return ElfType
 }
 
 func (e *ElfRender) Release() {
-    _ = e.f.Close()
+	_ = e.f.Close()
 }
 
 func (e *ElfRender) buildHeader() data.Content {
-    header := e.f.FileHeader
+	header := e.f.FileHeader
 
-    table := content.NewTable("MEMBER", "VALUE").
-        WithDesc(fmt.Sprintf("table 1: file %q header, for more information, see: %q", e.filepath, "readelf -h ..."))
-    table.AddRow("Class", header.Class).
-        AddRow("data", header.Data).
-        AddRow("ByteOrder", header.ByteOrder).
-        AddRow("Version", header.Version).
-        AddRow("Os/ABI", header.OSABI).
-        AddRow("ABI Version", strconv.Itoa(int(header.ABIVersion))).
-        AddRow("Type", header.Type).
-        AddRow("Machine", header.Machine).
-        AddRow("Version", header.Version).
-        AddRow("Entry", convertAddr(header.Entry))
-    return table
+	table := content.NewTable("MEMBER", "VALUE").
+		WithDesc(fmt.Sprintf("table 1: file %q header, for more information, see: %q", e.filepath, "readelf -h ..."))
+	table.AddRow("Class", header.Class).
+		AddRow("data", header.Data).
+		AddRow("ByteOrder", header.ByteOrder).
+		AddRow("Version", header.Version).
+		AddRow("Os/ABI", header.OSABI).
+		AddRow("ABI Version", strconv.Itoa(int(header.ABIVersion))).
+		AddRow("Type", header.Type).
+		AddRow("Machine", header.Machine).
+		AddRow("Version", header.Version).
+		AddRow("Entry", convertAddr(header.Entry))
+	return table
 }
 
 func (e *ElfRender) buildProgHeader() data.Content {
-    ph := e.f.Progs
+	ph := e.f.Progs
 
-    table := content.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
-        WithDesc(fmt.Sprintf("table 2: file %q program headers, for more information, see: %q", e.filepath, "readelf -l ...")).
-        SetHandler(convertRow)
-    for _, prog := range ph {
-        table.AddRow(prog.Type, prog.Off, prog.Filesz, prog.Vaddr, prog.Memsz, prog.Paddr, prog.Flags, prog.Align)
-    }
+	table := content.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
+		WithDesc(fmt.Sprintf("table 2: file %q program headers, for more information, see: %q", e.filepath, "readelf -l ...")).
+		SetHandler(convertRow)
+	for _, prog := range ph {
+		table.AddRow(prog.Type, prog.Off, prog.Filesz, prog.Vaddr, prog.Memsz, prog.Paddr, prog.Flags, prog.Align)
+	}
 
-    return table
+	return table
 }
 
 func (e *ElfRender) buildStaticData() data.Content {
-    sectionRels, err := xelf.BuildRelIf(e.f, false)
-    if err != nil {
-        log.Warnf("Get static rel data from elf file failed: %v", err)
-        return data.EmptyContent
-    }
-    if len(sectionRels) == 0 {
-        return data.EmptyContent
-    }
+	sectionRels, err := xelf.BuildRelIf(e.f, false)
+	if err != nil {
+		log.Warnf("Get static rel data from elf file failed: %v", err)
+		return data.EmptyContent
+	}
+	if len(sectionRels) == 0 {
+		return data.EmptyContent
+	}
 
-    mk := content.NewContentSet(content.NewTitleMarkdown(content.H3, "Static relocation info"))
-    for _, rel := range sectionRels {
-        mk.Combine(relSecToMarkdown(rel))
-    }
-    return mk
+	mk := content.NewContentSet(content.NewTitleMarkdown(content.H3, "Static relocation info"))
+	for _, rel := range sectionRels {
+		mk.Combine(relSecToMarkdown(rel))
+	}
+	return mk
 }
 
 func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
-    dynInfo, err := xelf.BuildDynamicInfo(e.f)
-    if err != nil {
-        log.Warnf("Get static rel data from elf file failed: %v", err)
-        return data.EmptyContent
-    }
+	dynInfo, err := xelf.BuildDynamicInfo(e.f)
+	if err != nil {
+		log.Warnf("Get static rel data from elf file failed: %v", err)
+		return data.EmptyContent
+	}
 
-    resContent := content.NewContentSet()
+	resContent := content.NewContentSet()
 
-    // info
-    resContent.Combine(content.NewTitleMarkdown(content.H2, "Dynamic info").
-        Append(content.NewTitleMarkdown(content.H3, "interp").WithContents(dynInfo.Interp)))
+	// info
+	resContent.Combine(content.NewTitleMarkdown(content.H2, "Dynamic info").
+		Append(content.NewTitleMarkdown(content.H3, "interp").WithContents(dynInfo.Interp)))
 
-    // dynamic symbol
-    symContent := content.NewTitleMarkdown(content.H3, "dynamic symbols")
-    if syms := dynInfo.Symbols; len(syms) == 0 {
-        resContent.Combine(symContent.WithContents("no data"))
-    } else {
-        symTable := content.NewTable("Name", "Section", "Value", "Size", "Library", "Version").SetHandler(convertRow)
-        for _, symbol := range syms {
-            symTable.AddRow(symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
-        }
-        resContent.Combine(symContent, symTable)
-    }
+	// dynamic symbol
+	symContent := content.NewTitleMarkdown(content.H3, "dynamic symbols")
+	if syms := dynInfo.Symbols; len(syms) == 0 {
+		resContent.Combine(symContent.WithContents("no data"))
+	} else {
+		symTable := content.NewTable("Name", "Section", "Value", "Size", "Library", "Version").SetHandler(convertRow)
+		for _, symbol := range syms {
+			symTable.AddRow(symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
+		}
+		resContent.Combine(symContent, symTable)
+	}
 
-    // dyn
-    tag2DynContent := content.NewTitleMarkdown(content.H3, "dyn string")
-    if t2d := dynInfo.Tag2Dyn; len(dynInfo.Tag2Dyn) == 0 {
-        resContent.Combine(tag2DynContent.WithContents("No data"))
-    } else {
-        tag2DynTable := content.NewTable("Tag", "Data")
-        for tag, strList := range t2d {
-            if len(strList) == 0 {
-                continue
-            }
-            tagStr := tag.String()
-            for _, str := range strList {
-                tag2DynTable.AddRow(tagStr, str)
-            }
-        }
-        resContent.Combine(tag2DynContent, tag2DynTable)
-    }
+	// dyn
+	tag2DynContent := content.NewTitleMarkdown(content.H3, "dyn string")
+	if t2d := dynInfo.Tag2Dyn; len(dynInfo.Tag2Dyn) == 0 {
+		resContent.Combine(tag2DynContent.WithContents("No data"))
+	} else {
+		tag2DynTable := content.NewTable("Tag", "Data")
+		for tag, strList := range t2d {
+			if len(strList) == 0 {
+				continue
+			}
+			tagStr := tag.String()
+			for _, str := range strList {
+				tag2DynTable.AddRow(tagStr, str)
+			}
+		}
+		resContent.Combine(tag2DynContent, tag2DynTable)
+	}
 
-    // import symbol
-    importSymsContent := content.NewTitleMarkdown(content.H3, "import symbols")
-    if iSym := dynInfo.ImportedSymbols; len(iSym) == 0 {
-        resContent.Combine(importSymsContent.WithContents("no data"))
-    } else {
-        importSymsTable := content.NewTable("Name", "Version", "Library")
-        for _, symbol := range iSym {
-            importSymsTable.AddRow(symbol.Name, symbol.Version, symbol.Library)
-        }
-        resContent.Combine(importSymsContent, importSymsTable)
-    }
+	// import symbol
+	importSymsContent := content.NewTitleMarkdown(content.H3, "import symbols")
+	if iSym := dynInfo.ImportedSymbols; len(iSym) == 0 {
+		resContent.Combine(importSymsContent.WithContents("no data"))
+	} else {
+		importSymsTable := content.NewTable("Name", "Version", "Library")
+		for _, symbol := range iSym {
+			importSymsTable.AddRow(symbol.Name, symbol.Version, symbol.Library)
+		}
+		resContent.Combine(importSymsContent, importSymsTable)
+	}
 
-    relSecs := content.NewTitleMarkdown(content.H3, "Dynamic relocation sections")
-    if rss := dynInfo.RelSections; len(rss) == 0 {
-        resContent.Combine(relSecs.WithContents("No data"))
-    } else {
-        resContent.Combine(relSecs)
-        for _, rel := range rss {
-            resContent.Combine(relSecToMarkdown(rel))
-        }
-    }
+	relSecs := content.NewTitleMarkdown(content.H3, "Dynamic relocation sections")
+	if rss := dynInfo.RelSections; len(rss) == 0 {
+		resContent.Combine(relSecs.WithContents("No data"))
+	} else {
+		resContent.Combine(relSecs)
+		for _, rel := range rss {
+			resContent.Combine(relSecToMarkdown(rel))
+		}
+	}
 
-    return resContent
+	return resContent
 }
 
 func relSecToMarkdown(rSec xelf.RelSection) data.Content {
-    sec := rSec.Section
-    mk := content.NewContentSet(content.NewTitleMarkdown(content.H4, "Relocation Section ["+sec.Name+"]"))
-    secTable := content.NewTable("Name", "Type", "Flags", "Addr", "Offset",
-        "Size", "Link", "Info", "Addralign", "Entsize", "FileSize").SetHandler(convertRow)
-    secTable.AddRow(sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
-        sec.Addralign, sec.Entsize, sec.FileSize)
-    mk.Combine(secTable, relsToMarkdown(rSec.Rels))
-    return mk
+	sec := rSec.Section
+	mk := content.NewContentSet(content.NewTitleMarkdown(content.H4, "Relocation Section ["+sec.Name+"]"))
+	secTable := content.NewTable("Name", "Type", "Flags", "Addr", "Offset",
+		"Size", "Link", "Info", "Addralign", "Entsize", "FileSize").SetHandler(convertRow)
+	secTable.AddRow(sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
+		sec.Addralign, sec.Entsize, sec.FileSize)
+	mk.Combine(secTable, relsToMarkdown(rSec.Rels))
+	return mk
 }
 
 func relsToMarkdown(rels []xelf.RelDecoded) data.Content {
-    if len(rels) == 0 {
-        return data.EmptyContent
-    }
-    relTable := content.NewTable("Offset", "Type", "Value")
-    for _, rel := range rels {
-        relTable.AddRow(convertAddr(rel.Offset), rel.XType, rel.Value)
-    }
-    return relTable
+	if len(rels) == 0 {
+		return data.EmptyContent
+	}
+	relTable := content.NewTable("Offset", "Type", "Value")
+	for _, rel := range rels {
+		relTable.AddRow(convertAddr(rel.Offset), rel.XType, rel.Value)
+	}
+	return relTable
 }
 
 func convertRow(val interface{}) (string, bool) {
-    switch val := val.(type) {
-    case uint64:
-        return convertAddr(val), true
-    case uint32:
-        return convertAddr(uint64(val)), true
-    case string:
-        return val, true
-    case fmt.Stringer:
-        return val.String(), true
-    }
-    return "", false
+	switch val := val.(type) {
+	case uint64:
+		return convertAddr(val), true
+	case uint32:
+		return convertAddr(uint64(val)), true
+	case string:
+		return val, true
+	case fmt.Stringer:
+		return val.String(), true
+	}
+	return "", false
 }
 
 func convertAddr(addr uint64) string {
-    return "0X" + strconv.FormatUint(addr, 16)
+	return "0X" + strconv.FormatUint(addr, 16)
 }

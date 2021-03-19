@@ -1,53 +1,53 @@
 package helper
 
 import (
-    "fmt"
-    "github.com/phoenixxc/elf-load-analyser/pkg/log"
-    "reflect"
+	"fmt"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"reflect"
 )
 
 func EqualWithTip(expected, actual interface{}, errorMsg string) {
-    Equal(expected, actual, func(e, a interface{}) {
-        log.Info(errorMsg)
-    })
+	Equal(expected, actual, func(e, a interface{}) {
+		log.Info(errorMsg)
+	})
 }
 
 func Equal(expected, actual interface{}, handler func(e, a interface{})) {
-    Validate(expected, actual, func(expected, actual interface{}) bool {
-        return expected == actual
-    }, handler)
+	Validate(expected, actual, func(expected, actual interface{}) bool {
+		return expected == actual
+	}, handler)
 }
 
 func WithTip(expected, actual interface{}, predicate func(expected, actual interface{}) bool, errorMsg string) {
-    Validate(expected, actual, predicate, func(e, a interface{}) {
-        log.Error(errorMsg)
-    })
+	Validate(expected, actual, predicate, func(e, a interface{}) {
+		log.Error(errorMsg)
+	})
 }
 
 func Validate(expected, actual interface{},
-    predicate func(expected, actual interface{}) bool,
-    handler func(e, a interface{})) {
-    expectedVal, actualVal := getValue(expected), getValue(actual)
-    if !predicate(expectedVal, actualVal) {
-        handler(expectedVal, actualVal)
-    }
+	predicate func(expected, actual interface{}) bool,
+	handler func(e, a interface{})) {
+	expectedVal, actualVal := getValue(expected), getValue(actual)
+	if !predicate(expectedVal, actualVal) {
+		handler(expectedVal, actualVal)
+	}
 }
 
 func isNotFunc(val interface{}) bool {
-    if val == nil {
-        return false
-    }
-    return reflect.TypeOf(val).Kind() != reflect.Func
+	if val == nil {
+		return false
+	}
+	return reflect.TypeOf(val).Kind() != reflect.Func
 }
 
 func getValue(val interface{}) interface{} {
-    if isNotFunc(val) {
-        return val
-    }
-    switch val := val.(type) {
-    case func() interface{}:
-        return val()
-    default:
-        panic(fmt.Sprintf("argument %T should be normal value or func() interface{} type", val))
-    }
+	if isNotFunc(val) {
+		return val
+	}
+	switch val := val.(type) {
+	case func() interface{}:
+		return val()
+	default:
+		panic(fmt.Sprintf("argument %T should be normal value or func() interface{} type", val))
+	}
 }

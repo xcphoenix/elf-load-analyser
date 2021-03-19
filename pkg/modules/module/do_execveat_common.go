@@ -1,56 +1,56 @@
 package module
 
 import (
-    _ "embed" // for embed bcc source
-    "fmt"
-    "github.com/phoenixxc/elf-load-analyser/pkg/bcc"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data"
-    "github.com/phoenixxc/elf-load-analyser/pkg/data/content"
-    "github.com/phoenixxc/elf-load-analyser/pkg/modules"
-    "github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
+	_ "embed" // for embed bcc source
+	"fmt"
+	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
+	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
 
 //go:embed src/do_execveat_common.cpp.k
 var doExecveatCommonSource string
 
 type execveatComEvent struct {
-    enhance.TimeEventResult
-    Fd       int32
-    Flags    int32
-    Filename [256]byte
+	enhance.TimeEventResult
+	Fd       int32
+	Flags    int32
+	Filename [256]byte
 }
 
 func (e execveatComEvent) Render() *data.AnalyseData {
-    s := data.TrimBytes2Str(e.Filename[:])
-    var msg = content.NewList(
-        fmt.Sprintf("fd = %d", e.Fd),
-        fmt.Sprintf("flags = %d", e.Flags),
-        fmt.Sprintf("filename = %s", s),
-    )
-    return data.NewAnalyseData(msg)
+	s := data.TrimBytes2Str(e.Filename[:])
+	var msg = content.NewList(
+		fmt.Sprintf("fd = %d", e.Fd),
+		fmt.Sprintf("flags = %d", e.Flags),
+		fmt.Sprintf("filename = %s", s),
+	)
+	return data.NewAnalyseData(msg)
 }
 
 type doExecveatCommon struct {
-    modules.MonitorModule
+	modules.MonitorModule
 }
 
 func init() {
-    m := modules.NewPerfResolveMonitorModule(&doExecveatCommon{})
-    m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
-        return modules.Render(data, &execveatComEvent{}, true)
-    })
-    modules.ModuleDefaultInit(m)
+	m := modules.NewPerfResolveMonitorModule(&doExecveatCommon{})
+	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
+		return modules.Render(data, &execveatComEvent{}, true)
+	})
+	modules.ModuleDefaultInit(m)
 }
 
 func (c *doExecveatCommon) Monitor() string {
-    return "execveat"
+	return "execveat"
 }
 
 func (c *doExecveatCommon) Source() string {
-    return doExecveatCommonSource
+	return doExecveatCommonSource
 }
 
 func (c *doExecveatCommon) Events() []*bcc.Event {
-    ke := bcc.NewKprobeEvent("kprobe__do_execveat_common", "do_execveat_common", -1)
-    return []*bcc.Event{ke}
+	ke := bcc.NewKprobeEvent("kprobe__do_execveat_common", "do_execveat_common", -1)
+	return []*bcc.Event{ke}
 }
