@@ -11,7 +11,7 @@ import (
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/state"
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
 )
 
 type Level int8
@@ -132,10 +132,15 @@ func Error(e error) {
 func Errorf(format string, a ...interface{}) {
 	innerLogf(errorLogger, format, a...)
 	var err error
+	var hasError bool
 	if len(a) > 0 {
 		if e, ok := a[len(a)-1].(error); ok {
 			err = e
+			hasError = true
 		}
+	}
+	if !hasError {
+		err = fmt.Errorf(format, a...)
 	}
 	state.WithError(err)
 	os.Exit(1)

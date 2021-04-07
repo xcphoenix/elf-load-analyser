@@ -1,7 +1,8 @@
-package content
+package form
 
 import (
 	"fmt"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 )
 

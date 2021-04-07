@@ -4,14 +4,16 @@ import (
 	_ "embed" // embed for banner.txt
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
 )
 
+var BannerLen string
+
 const (
 	kvDelimiter = ": \t"
-	bannerLen   = 38 + 10
 )
 
 //go:embed banner.txt
@@ -41,8 +43,9 @@ func EchoBanner() {
 	kvLen, banLen := len(kvList), len(bannerArr)
 	startIdx := helper.IfElse(kvLen >= banLen, 0, (banLen-kvLen)/2).(int)
 
+	bannerMaxLen, _ := strconv.Atoi(BannerLen)
 	for i, s := range bannerArr {
-		fmt.Printf("%-*.*s", bannerLen, bannerLen, s)
+		fmt.Printf("%-*.*s", bannerMaxLen, bannerMaxLen, s)
 		if bIdx := i - startIdx; bIdx >= 0 && bIdx < kvLen {
 			fmt.Print(kvList[bIdx])
 		}

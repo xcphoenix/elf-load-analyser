@@ -1,15 +1,10 @@
 package data
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 )
-
-type Type int8
-
-type Status int8
 
 type JSONTime time.Time
 
@@ -18,15 +13,9 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(stamp), nil
 }
 
-// DataContent Format Type
-const (
-	UnitType = Type(iota)
-	MarkdownType
-	ListType
-	TableType
-)
-
 // Result Status
+type Status int8
+
 const (
 	Success  = Status(iota) // success
 	RunError                // exec runtime error, such as kernel function return failed
@@ -35,19 +24,6 @@ const (
 var status2Desc = map[Status]string{
 	Success:  "OK",
 	RunError: "happened error at runtime",
-}
-
-type Content interface {
-	Class() Type
-	Data() interface{}
-}
-
-type WrapContent struct{ Content }
-
-var EmptyContent = WrapContent{}
-
-func (w WrapContent) MarshalJSON() ([]byte, error) {
-	return json.Marshal(w.Content.Data())
 }
 
 type AnalyseData struct {
@@ -76,7 +52,7 @@ func NewAnalyseData(content Content) *AnalyseData {
 		Name:   "",
 		Status: Success,
 		XType:  content.Class(),
-		Data:   &WrapContent{Content: content},
+		Data:   NewWrapContent(content),
 		Desc:   statusDesc(Success),
 		XTime:  JSONTime(time.Now()),
 		Extra:  map[string]string{},

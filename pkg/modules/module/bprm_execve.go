@@ -5,7 +5,7 @@ import (
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -18,7 +18,7 @@ type bprmExecveEvent struct {
 }
 
 func (a bprmExecveEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("execve")))
+	return data.NewAnalyseData(form.NewMarkdown("execve"))
 }
 
 type bprmExecve struct {
@@ -26,11 +26,11 @@ type bprmExecve struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&bprmExecve{})
+	m := modules.NewPerfResolveMm(&bprmExecve{}, false)
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &bprmExecveEvent{}, true)
 	})
-	modules.ModuleDefaultInit(m)
+	modules.ModuleInit(m)
 }
 
 func (a *bprmExecve) Monitor() string {

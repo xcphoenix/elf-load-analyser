@@ -14,7 +14,7 @@ type UprobeEvent struct {
 }
 
 func NewUprobeEvent(name, fnName, fileName string, pid int) *Event {
-	e := NewEvent(KprobesType, name, fnName)
+	e := NewEvent(UprobeType, name, fnName)
 	ke := UprobeEvent{
 		Event:    e,
 		fileName: fileName,

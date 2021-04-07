@@ -1,9 +1,10 @@
-package content
+package form
 
 import (
 	"bytes"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"strings"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 )
 
 type ItemLevel uint8

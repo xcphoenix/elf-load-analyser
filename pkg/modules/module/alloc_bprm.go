@@ -6,7 +6,7 @@ import (
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -31,7 +31,7 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 		" rlimit stack max: 0x%X, current of top mem: 0x%X",
 		data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
 		a.RlimCur, a.RlimMax, a.CurTopOfMem)
-	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown(s)))
+	return data.NewAnalyseData(form.NewMarkdown(s))
 }
 
 type allocBprm struct {
@@ -39,11 +39,11 @@ type allocBprm struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&allocBprm{})
+	m := modules.NewPerfResolveMm(&allocBprm{}, false)
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &allocBprmEvent{}, true)
 	})
-	modules.ModuleDefaultInit(m)
+	modules.ModuleInit(m)
 }
 
 func (a *allocBprm) Monitor() string {

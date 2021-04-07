@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/state"
 )
 
 type Pool struct {
@@ -52,12 +52,12 @@ func (p *Pool) Data() []*data.AnalyseData {
 	return p.data
 }
 
-func (p *Pool) Close() {
+func (p *Pool) close() {
 	close(p.ch)
 	close(p.exit)
 }
 
-func (p *Pool) Init() {
+func (p *Pool) Init(done <-chan struct{}) {
 	go func() {
 	loop:
 		for {
@@ -69,6 +69,10 @@ func (p *Pool) Init() {
 					break loop
 				}
 				p.data = append(p.data, d)
+			case <-done:
+				time.Sleep(10 * time.Millisecond)
+				p.close()
+				break loop
 			}
 		}
 	}()

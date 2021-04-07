@@ -7,7 +7,7 @@ import (
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -17,7 +17,7 @@ type sysExecveEvent struct {
 }
 
 func (e sysExecveEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("start call")))
+	return data.NewAnalyseData(form.NewMarkdown("start call"))
 }
 
 type sysExecveRetEvent struct {
@@ -29,7 +29,7 @@ func (s sysExecveRetEvent) Render() *data.AnalyseData {
 	if s.Ret != 0 {
 		return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
 	}
-	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("execve success")))
+	return data.NewAnalyseData(form.NewMarkdown("execve success"))
 }
 
 //go:embed src/execve.c.k
@@ -41,7 +41,7 @@ type sysExecve struct {
 
 func init() {
 	entry := "call_event"
-	m := modules.NewPerfResolveMm(&sysExecve{})
+	m := modules.NewPerfResolveMm(&sysExecve{}, true)
 	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, error) {
 		return modules.Render(d, &sysExecveEvent{}, true)
 	})
@@ -49,7 +49,7 @@ func init() {
 		return modules.Render(d, &sysExecveRetEvent{}, true)
 	})
 	m.SetMark(entry, enhance.StartMark)
-	modules.ModuleInit(m, true)
+	modules.ModuleInit(m)
 }
 
 func (e *sysExecve) Monitor() string {

@@ -4,13 +4,14 @@ package env
 import (
 	"bufio"
 	"compress/gzip"
-	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
 const (

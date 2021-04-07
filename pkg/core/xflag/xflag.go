@@ -1,11 +1,27 @@
 package xflag
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
 )
+
+// xflag error
+type flagError struct {
+	msg string
+}
+
+func newFlagError(msg string) *flagError {
+	return &flagError{msg: msg}
+}
+
+func (e flagError) Error() string {
+	return e.msg
+}
 
 type Val struct {
 	val        interface{}
@@ -115,19 +131,30 @@ func AddCmdFlags(xfList ...*Set) {
 
 // 解析 Flag
 func Parse(f *flag.FlagSet) {
-	_ = f.Parse(os.Args[1:])
-	for name := range mustFlag {
-		if f.Lookup(name) == nil {
-			fmt.Printf("[%s] must be defined\n", name)
+	state.RegisterHandler(state.AbnormalExit, func(err error) error {
+		var fe *flagError
+		if errors.As(err, &fe) {
+			fmt.Println(fe.msg)
 			f.Usage()
-			os.Exit(1)
+		}
+		return nil
+	})
+
+	_ = f.Parse(os.Args[1:])
+	// 获取哪些参数被设置
+	flagExist := make(map[string]bool)
+	f.VisitAll(func(f *flag.Flag) {
+		flagExist[f.Name] = true
+	})
+	for name := range mustFlag {
+		if !flagExist[name] {
+			state.WithError(newFlagError(fmt.Sprintf("[%s] must be defined\n", name)))
 		}
 	}
 	for name, handle := range holdHandler {
-		if err := handle(); err != nil {
-			fmt.Printf("[%s] parsed error: %v\n", name, err)
-			f.Usage()
-			os.Exit(1)
+		err := handle()
+		if err != nil {
+			state.WithError(newFlagError(fmt.Sprintf("[%s] parsed error: %v\n", name, err)))
 		}
 	}
 }

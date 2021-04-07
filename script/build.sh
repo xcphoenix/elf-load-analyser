@@ -9,6 +9,10 @@ readonly GO_WORK="${WORK_DIR}/../"
 readonly SRC_DIR="${WORK_DIR}/../pkg/modules/module/src"
 readonly FRONTED_DIR="${WORK_DIR}/../pkg/web/template"
 
+# for banner.txt
+readonly BANNER_LEN_EXPR='github.com/phoenixxc/elf-load-analyser/pkg/env.BannerLen='
+readonly BANNER_PATH="${WORK_DIR}/../pkg/env/banner.txt"
+
 readonly ARG_ERR=100
 readonly VAL_ERR=101
 
@@ -72,7 +76,6 @@ if [ "${gc_flags}" ]; then
 fi
 
 echo "Bcc source dir: ${SRC_DIR}"
-
 cd "${SRC_DIR}" || exit
 echo "Merge files"
 merge_src
@@ -83,9 +86,13 @@ build_fronted || exit
 cd "${GO_WORK}" || exit
 echo "Build binary..."
 mkdir -p "target"
+# remove symbol data
 if [ "${rm_extra_symbol}" -ne 0 ]; then
     ld_flags="-s -w"
 fi
+# inject val use go build -X
+banner_max_len=$(awk '{if (length(max)<length()) max=$0}END{print length(max)+10;}' "${BANNER_PATH}")
+ld_flags="${ld_flags} -X ${BANNER_LEN_EXPR}${banner_max_len}"
 go build -gcflags="${gc_flags}" -ldflags "${ld_flags}" -o target/"${TARGET}" \
     github.com/phoenixxc/elf-load-analyser/cmd || exit
 

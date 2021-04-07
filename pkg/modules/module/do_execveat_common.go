@@ -6,7 +6,7 @@ import (
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
@@ -23,12 +23,12 @@ type execveatComEvent struct {
 
 func (e execveatComEvent) Render() *data.AnalyseData {
 	s := data.TrimBytes2Str(e.Filename[:])
-	var msg = content.NewList(
+	var msg = form.NewList(
 		fmt.Sprintf("fd = %d", e.Fd),
 		fmt.Sprintf("flags = %d", e.Flags),
 		fmt.Sprintf("filename = %s", s),
 	)
-	return data.NewAnalyseData(content.NewContentSet(msg))
+	return data.NewAnalyseData(msg)
 }
 
 type doExecveatCommon struct {
@@ -36,11 +36,11 @@ type doExecveatCommon struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&doExecveatCommon{})
+	m := modules.NewPerfResolveMm(&doExecveatCommon{}, false)
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &execveatComEvent{}, true)
 	})
-	modules.ModuleDefaultInit(m)
+	modules.ModuleInit(m)
 }
 
 func (c *doExecveatCommon) Monitor() string {

@@ -3,12 +3,13 @@ package render
 import (
 	"debug/elf"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
 	"os"
 	"strconv"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
 )
 
 type ElfRender struct {
@@ -30,10 +31,10 @@ func NewElfRender(filepath string) (*ElfRender, error) {
 }
 
 func (e *ElfRender) Render() (d *data.AnalyseData, err error) {
-	renderRes := content.NewContentSet(
-		content.NewTitleMarkdown(content.H2, "ELF File Header"),
+	renderRes := data.NewSet(
+		form.NewTitleMarkdown(form.H2, "ELF File Header"),
 		e.buildHeader(),
-		content.NewTitleMarkdown(content.H2, "ELF Prog Header"),
+		form.NewTitleMarkdown(form.H2, "ELF Prog Header"),
 		e.buildProgHeader(),
 		e.buildDynamicData(),
 	)
@@ -54,7 +55,7 @@ func (e *ElfRender) Release() {
 func (e *ElfRender) buildHeader() data.Content {
 	header := e.f.FileHeader
 
-	table := content.NewTable("MEMBER", "VALUE").
+	table := form.NewTable("MEMBER", "VALUE").
 		WithDesc(fmt.Sprintf("table 1: file %q header, for more information, see: %q", e.filepath, "readelf -h ..."))
 	table.AddRow("Class", header.Class).
 		AddRow("data", header.Data).
@@ -72,7 +73,7 @@ func (e *ElfRender) buildHeader() data.Content {
 func (e *ElfRender) buildProgHeader() data.Content {
 	ph := e.f.Progs
 
-	table := content.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
+	table := form.NewTable("Type", "Offset", "FileSize", "VirtAddr", "MemSize", "PhysAddr", "Flags", "Align").
 		WithDesc(fmt.Sprintf("table 2: file %q program headers, for more information, see: %q", e.filepath, "readelf -l ...")).
 		SetHandler(convertRow)
 	for _, prog := range ph {
@@ -92,7 +93,7 @@ func (e *ElfRender) buildStaticData() data.Content {
 		return data.EmptyContent
 	}
 
-	mk := content.NewContentSet(content.NewTitleMarkdown(content.H3, "Static relocation info"))
+	mk := data.NewSet(form.NewTitleMarkdown(form.H3, "Static relocation info"))
 	for _, rel := range sectionRels {
 		mk.Combine(relSecToMarkdown(rel))
 	}
@@ -106,18 +107,18 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
 		return data.EmptyContent
 	}
 
-	resContent := content.NewContentSet()
+	resContent := data.NewSet()
 
 	// info
-	resContent.Combine(content.NewTitleMarkdown(content.H2, "Dynamic info").
-		Append(content.NewTitleMarkdown(content.H3, "interp").WithContents(dynInfo.Interp)))
+	resContent.Combine(form.NewTitleMarkdown(form.H2, "Dynamic info").
+		Append(form.NewTitleMarkdown(form.H3, "interp").WithContents(dynInfo.Interp)))
 
 	// dynamic symbol
-	symContent := content.NewTitleMarkdown(content.H3, "dynamic symbols")
+	symContent := form.NewTitleMarkdown(form.H3, "dynamic symbols")
 	if syms := dynInfo.Symbols; len(syms) == 0 {
 		resContent.Combine(symContent.WithContents("no data"))
 	} else {
-		symTable := content.NewTable("Name", "Section", "Value", "Size", "Library", "Version").SetHandler(convertRow)
+		symTable := form.NewTable("Name", "Section", "Value", "Size", "Library", "Version").SetHandler(convertRow)
 		for _, symbol := range syms {
 			symTable.AddRow(symbol.Name, symbol.Section, symbol.Value, symbol.Size, symbol.Library, symbol.Version)
 		}
@@ -125,11 +126,11 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
 	}
 
 	// dyn
-	tag2DynContent := content.NewTitleMarkdown(content.H3, "dyn string")
+	tag2DynContent := form.NewTitleMarkdown(form.H3, "dyn string")
 	if t2d := dynInfo.Tag2Dyn; len(dynInfo.Tag2Dyn) == 0 {
 		resContent.Combine(tag2DynContent.WithContents("No data"))
 	} else {
-		tag2DynTable := content.NewTable("Tag", "Data")
+		tag2DynTable := form.NewTable("Tag", "Data")
 		for tag, strList := range t2d {
 			if len(strList) == 0 {
 				continue
@@ -143,18 +144,18 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
 	}
 
 	// import symbol
-	importSymsContent := content.NewTitleMarkdown(content.H3, "import symbols")
+	importSymsContent := form.NewTitleMarkdown(form.H3, "import symbols")
 	if iSym := dynInfo.ImportedSymbols; len(iSym) == 0 {
 		resContent.Combine(importSymsContent.WithContents("no data"))
 	} else {
-		importSymsTable := content.NewTable("Name", "Version", "Library")
+		importSymsTable := form.NewTable("Name", "Version", "Library")
 		for _, symbol := range iSym {
 			importSymsTable.AddRow(symbol.Name, symbol.Version, symbol.Library)
 		}
 		resContent.Combine(importSymsContent, importSymsTable)
 	}
 
-	relSecs := content.NewTitleMarkdown(content.H3, "Dynamic relocation sections")
+	relSecs := form.NewTitleMarkdown(form.H3, "Dynamic relocation sections")
 	if rss := dynInfo.RelSections; len(rss) == 0 {
 		resContent.Combine(relSecs.WithContents("No data"))
 	} else {
@@ -169,8 +170,8 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
 
 func relSecToMarkdown(rSec xelf.RelSection) data.Content {
 	sec := rSec.Section
-	mk := content.NewContentSet(content.NewTitleMarkdown(content.H4, "Relocation Section ["+sec.Name+"]"))
-	secTable := content.NewTable("Name", "Type", "Flags", "Addr", "Offset",
+	mk := data.NewSet(form.NewTitleMarkdown(form.H4, "Relocation Section ["+sec.Name+"]"))
+	secTable := form.NewTable("Name", "Type", "Flags", "Addr", "Offset",
 		"Size", "Link", "Info", "Addralign", "Entsize", "FileSize").SetHandler(convertRow)
 	secTable.AddRow(sec.Name, sec.Type, sec.Flags, sec.Addr, sec.Offset, sec.Size, sec.Link, sec.Info,
 		sec.Addralign, sec.Entsize, sec.FileSize)
@@ -182,7 +183,7 @@ func relsToMarkdown(rels []xelf.RelDecoded) data.Content {
 	if len(rels) == 0 {
 		return data.EmptyContent
 	}
-	relTable := content.NewTable("Offset", "Type", "Value")
+	relTable := form.NewTable("Offset", "Type", "Value")
 	for _, rel := range rels {
 		relTable.AddRow(convertAddr(rel.Offset), rel.XType, rel.Value)
 	}

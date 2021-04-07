@@ -7,7 +7,7 @@ type UretprobeEvent struct {
 }
 
 func NewUretprobeEvent(name, fnName, fileName string, pid int) *Event {
-	e := NewEvent(KretprobesType, name, fnName)
+	e := NewEvent(UretprobeType, name, fnName)
 	ke := UretprobeEvent{
 		UprobeEvent: UprobeEvent{
 			Event:    e,

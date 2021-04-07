@@ -7,7 +7,7 @@ type KretprobeEvent struct {
 }
 
 func NewKretprobeEvent(name string, fnName string, maxActive int) *Event {
-	e := NewEvent(KretprobesType, name, fnName)
+	e := NewEvent(KretprobeType, name, fnName)
 	ke := KretprobeEvent{
 		KprobeEvent: KprobeEvent{
 			Event:     e,

@@ -3,6 +3,7 @@ package render
 import (
 	"debug/elf"
 	"errors"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
@@ -21,7 +22,7 @@ func PreAnalyse(ctx *Ctx) {
 		if ok := errors.As(e, &formatErr); ok {
 			log.Errorf("Invalid elf file, %v", e)
 		} else {
-			log.Errorf("Analyse target binary content error, %v", e)
+			log.Errorf("Analyse target binary form error, %v", e)
 		}
 	}
 	d, _ = doRender(elfRender)

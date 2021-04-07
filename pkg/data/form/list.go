@@ -1,4 +1,4 @@
-package content
+package form
 
 import (
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"

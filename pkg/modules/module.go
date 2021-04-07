@@ -29,35 +29,25 @@ type EventResult interface {
 
 // MonitorModule 模块抽象接口
 type MonitorModule interface {
-	// Monitor 返回模块的名称，以及是否作为结束标志
+	// Monitor 返回模块的名称
 	Monitor() string
 	// Source 返回注入的 bcc 源码
 	Source() string
 	// Events 返回要注册的事件
 	Events() []*bcc.Event
+	// IsEnd 是否标记为最后
+	IsEnd() bool
 	// Resolve 解析、发送处理结果
 	Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{})
 }
 
-// ModuleDefaultInit 注册 Module
-func ModuleDefaultInit(mm MonitorModule) {
-	ModuleInit(mm, false)
-}
-
 // ModuleInit 注册 Module
-func ModuleInit(mm MonitorModule, end bool) {
-	// PerfResolveMm stop handler check
-	if end {
-		if mm, ok := mm.(*PerfResolveMm); ok {
-			mm.stopHandler = nil
-		}
-	}
-
+func ModuleInit(mm MonitorModule) {
 	m := bcc.NewMonitor(mm.Monitor(), mm.Source(), defaultFlags, mm.Resolve)
 	for _, event := range mm.Events() {
 		m.AddEvent(event)
 	}
-	if end {
+	if mm.IsEnd() {
 		m.SetEnd()
 	}
 	factory.Register(m)

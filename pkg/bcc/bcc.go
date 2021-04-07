@@ -1,38 +1,45 @@
 package bcc
 
 import (
+	"strconv"
+	"strings"
+
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"strconv"
-	"strings"
 )
 
 type Type uint8
 
 const (
-	KprobesType    = Type(iota) // kprobes
-	KretprobesType              // kretprobes
+	KprobeType    = Type(iota) // kprobe
+	KretprobeType              // kretprobe
+	UprobeType                 // uprobe
+	UretprobeType              // uretprobe
 )
 
 func (t Type) String() (name string) {
 	switch t {
-	case KprobesType:
+	case KprobeType:
 		name = "kprobe"
-	case KretprobesType:
+	case KretprobeType:
 		name = "kretprobe"
+	case UprobeType:
+		name = "Uprobe"
+	case UretprobeType:
+		name = "Uretprobe"
 	default:
 		name = "unknown"
 	}
 	return
 }
 
-type Ctx struct {
+type PreParam struct {
 	Pid int
 }
 
-func NewCtx(pid int) *Ctx {
-	return &Ctx{Pid: pid}
+func NewCtx(pid int) *PreParam {
+	return &PreParam{Pid: pid}
 }
 
 type action interface {
@@ -81,7 +88,7 @@ func (m *Monitor) initialize() *bpf.Module {
 }
 
 // PreProcessing 预处理
-func (m *Monitor) PreProcessing(ctx *Ctx) error {
+func (m *Monitor) PreProcessing(ctx *PreParam) error {
 	// PID replace
 	m.Source = strings.ReplaceAll(m.Source, "_PID_", strconv.Itoa(ctx.Pid))
 	return nil
@@ -97,7 +104,11 @@ func (m *Monitor) AddEvent(event *Event) *Monitor {
 }
 
 // DoAction 执行 attach operation 操作
-func (m *Monitor) DoAction() (*bpf.Module, bool) {
+func (m *Monitor) DoAction() *bpf.Module {
+	if len(m.event2Action) == 0 {
+		log.Errorf("Monitor %s missing event", m.Name)
+	}
+
 	module := m.initialize()
 	for event, action := range m.event2Action {
 		log.Debugf("%s@%s#%s start load/attach action...", m.Name, event.FnName, event.Name)
@@ -105,19 +116,11 @@ func (m *Monitor) DoAction() (*bpf.Module, bool) {
 		action := *action
 		fd, err := action.Load(module)
 		if err != nil {
-			log.Warnf("Failed to load event %v, %v", *event, err)
-		} else if err = action.Attach(module, fd); err != nil {
-			log.Warnf("Failed to attach event %v, %v", *event, err)
-		} else {
-			continue
+			log.Errorf("Failed to load event %v, %v", *event, err)
 		}
-
-		if m.IsEnd() {
-			log.Errorf("The necessary monitor %q start failed", m.Name)
-		} else {
-			log.Warnf("Module %q load failed, ignored", m.Name)
-			return module, false
+		if err = action.Attach(module, fd); err != nil {
+			log.Errorf("Failed to attach event %v, %v", *event, err)
 		}
 	}
-	return module, true
+	return module
 }

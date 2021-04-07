@@ -10,7 +10,7 @@ type KprobeEvent struct {
 }
 
 func NewKprobeEvent(name string, fnName string, maxActive int) *Event {
-	e := NewEvent(KprobesType, name, fnName)
+	e := NewEvent(KprobeType, name, fnName)
 	ke := KprobeEvent{
 		Event:     e,
 		maxActive: maxActive,

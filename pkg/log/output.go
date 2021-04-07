@@ -35,7 +35,6 @@ func err(message string) string {
 func wrap(before string, message string) string {
 	var buff bytes.Buffer
 	buff.Grow(len(message) + len(before) + len(clear))
-	// TODO 如果 message 存在 clear，那么从最后一个位置后开始添加
 	startIdx := strings.LastIndex(message, clear)
 	if startIdx >= 0 {
 		idx := startIdx + len(clear)

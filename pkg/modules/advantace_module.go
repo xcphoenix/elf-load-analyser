@@ -45,17 +45,17 @@ type Enhancer interface {
 // PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
 type PerfResolveMm struct {
 	MonitorModule
-	tableIds    []string
-	table2Ctx   map[string]*TableCtx
-	stopHandler func(p *PerfResolveMm)
+	tableIds  []string
+	table2Ctx map[string]*TableCtx
+	isEnd     bool
 }
 
-func NewPerfResolveMm(m MonitorModule) *PerfResolveMm {
+func NewPerfResolveMm(m MonitorModule, isEnd bool) *PerfResolveMm {
 	return &PerfResolveMm{
 		MonitorModule: m,
 		tableIds:      []string{},
 		table2Ctx:     map[string]*TableCtx{},
-		stopHandler:   nil,
+		isEnd:         isEnd,
 	}
 }
 
@@ -88,10 +88,6 @@ func (p *PerfResolveMm) RegisterTable(name string, loop bool,
 	return tableChannel
 }
 
-func (p *PerfResolveMm) RegisterStopHandle(handler func(p *PerfResolveMm)) {
-	p.stopHandler = handler
-}
-
 func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 	ctx, ok := p.table2Ctx[name]
 	if !ok {
@@ -101,44 +97,35 @@ func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 	return p
 }
 
-//nolint:funlen
-func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
-	if log.ConfigLevel() == log.DLevel {
-		mutex.Do(func() {
-			l := len(registeredEnhancer)
-			if l == 0 {
-				return
-			}
-			enhancers, idx := make([]string, l), 0
-			for s := range registeredEnhancer {
-				enhancers[idx] = s
-				idx++
-			}
-			log.Debugf("Enhancer %v be registered", enhancers)
-		})
-	}
+func (p *PerfResolveMm) IsEnd() bool {
+	return p.isEnd
+}
 
+func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
 	if len(p.tableIds) == 0 {
+		log.Warnf("Monitor %q without event", p.Monitor())
+		ready <- struct{}{}
 		return
 	}
+	showRegisteredEnhancer()
 
 	perfMaps := initPerMaps(m, p)
 	ok := make(chan struct{})
 
+	chCnt := len(p.table2Ctx)
+	cnt := chCnt + 2
+	remaining := cnt
+	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ready, stop)
+
 	go func() {
 		defer func() { close(ok) }()
-
-		chCnt := len(p.table2Ctx)
-		cnt := chCnt + 1
-		if p.stopHandler != nil {
-			cnt++
+		lastRemain := 0
+		if p.IsEnd() {
+			lastRemain++
 		}
-		remaining := cnt
-		cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ready, stop)
-
-		for remaining > 0 {
+		for remaining > lastRemain {
 			chosen, value, ok := reflect.Select(cases)
-			if !ok {
+			if !value.IsValid() || !ok {
 				cases[chosen].Chan = reflect.ValueOf(nil)
 				remaining--
 				continue
@@ -148,7 +135,7 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 			ctx := p.table2Ctx[tName]
 
 			if chosen == chCnt+1 {
-				p.stopHandler(p)
+				log.Infof("Monitor %q quit", p.Monitor())
 				return
 			} else if chosen != chCnt {
 				d := value.Bytes()
@@ -165,9 +152,28 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 	for _, perfMap := range perfMaps {
 		perfMap.Start()
 	}
+	log.Infof("Monitor %s start...", p.Monitor())
 	<-ok
 	for _, perfMap := range perfMaps {
 		perfMap.Stop()
+	}
+	log.Infof("Monitor %s stop...", p.Monitor())
+}
+
+func showRegisteredEnhancer() {
+	if log.ConfigLevel() == log.DLevel {
+		mutex.Do(func() {
+			l := len(registeredEnhancer)
+			if l == 0 {
+				return
+			}
+			enhancers, idx := make([]string, l), 0
+			for s := range registeredEnhancer {
+				enhancers[idx] = s
+				idx++
+			}
+			log.Debugf("Enhancer %v be registered", enhancers)
+		})
 	}
 }
 
@@ -196,18 +202,20 @@ func dataProcessing(d []byte, ctx *TableCtx, ch chan<- *data.AnalyseData) {
 	}
 }
 
-func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx,
-	ready chan<- struct{}, stop <-chan struct{}) ([]reflect.SelectCase, []string) {
+func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- struct{},
+	stop <-chan struct{}) ([]reflect.SelectCase, []string) {
 	chCnt := len(table2Ctx)
 	cases := make([]reflect.SelectCase, cnt)
 	tableNames := make([]string, chCnt)
 
 	i := 0
+	// receive bcc perf_submit
 	for t, c := range table2Ctx {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(c.channel)}
 		tableNames[i] = t
 		i++
 	}
+	// send this module is ok
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),

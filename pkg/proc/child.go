@@ -12,7 +12,7 @@ import (
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/state"
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"golang.org/x/sys/unix"
@@ -59,9 +59,10 @@ func (ffd *fileFd) getFd() error {
 		f, e = os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	}
 	if e != nil {
-		return fmt.Errorf("open %s error: %w", file, e)
+		return e
 	}
 	state.RegisterHandler(state.Exit, func(_ error) error {
+		log.Debugf("Close file: %s", f.Name())
 		return f.Close()
 	})
 	*ffd.fd = f.Fd()
@@ -88,6 +89,12 @@ func ControlDetach() {
 		execProcess(transExecPath)
 		return
 	}
+}
+
+// 是否是主程序执行流
+func IsMainControl() bool {
+	_, isChild := os.LookupEnv(childFlagEnv)
+	return !isChild
 }
 
 // 创建子进程，返回进程 pid
@@ -127,6 +134,7 @@ func WakeUpChild(childPID int) {
 	if err != nil {
 		log.Errorf("Wake child proc error, %v", err)
 	}
+	log.Infof("Wake child proc success")
 }
 
 func execProcess(execPath string) {
