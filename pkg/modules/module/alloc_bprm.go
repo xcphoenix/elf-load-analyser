@@ -34,27 +34,17 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 	return data.NewAnalyseData(form.NewMarkdown(s))
 }
 
-type allocBprm struct {
-	modules.MonitorModule
-}
-
 func init() {
-	m := modules.NewPerfResolveMm(&allocBprm{}, false)
+	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+		Monitor: "alloc_bprm",
+		Source:  allowBprmSource,
+		Events: []*bcc.Event{
+			bcc.NewKretprobeEvent("kretprobe__alloc_bprm", "alloc_bprm", -1),
+		},
+		IsEnd: false,
+	})
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &allocBprmEvent{}, true)
 	})
-	modules.ModuleInit(m)
-}
-
-func (a *allocBprm) Monitor() string {
-	return "alloc_bprm"
-}
-
-func (a *allocBprm) Source() string {
-	return allowBprmSource
-}
-
-func (a *allocBprm) Events() []*bcc.Event {
-	ke := bcc.NewKretprobeEvent("kretprobe__alloc_bprm", "alloc_bprm", -1)
-	return []*bcc.Event{ke}
+	modules.ModuleInit(m.Mm())
 }

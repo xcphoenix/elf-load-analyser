@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
+
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
@@ -27,27 +29,36 @@ type EventResult interface {
 	Render() *data.AnalyseData
 }
 
-// MonitorModule 模块抽象接口
-type MonitorModule interface {
-	// Monitor 返回模块的名称
-	Monitor() string
-	// Source 返回注入的 bcc 源码
-	Source() string
-	// Events 返回要注册的事件
-	Events() []*bcc.Event
-	// IsEnd 是否标记为最后
-	IsEnd() bool
+type ModuleResolver interface {
 	// Resolve 解析、发送处理结果
 	Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{})
 }
 
-// ModuleInit 注册 Module
-func ModuleInit(mm MonitorModule) {
-	m := bcc.NewMonitor(mm.Monitor(), mm.Source(), defaultFlags, mm.Resolve)
-	for _, event := range mm.Events() {
+// MonitorModule 模块抽象接口
+type MonitorModule struct {
+	// ModuleResolver 解析
+	ModuleResolver
+
+	// Monitor 返回模块的名称
+	Monitor string
+	// Source 返回注入的 bcc 源码
+	Source string
+	// Events 返回要注册的事件
+	Events []*bcc.Event
+	// IsEnd 是否标记为最后
+	IsEnd bool
+}
+
+// ModuleInit 注册 ModuleResolver
+func ModuleInit(mm *MonitorModule) {
+	// check
+	helper.Predicate(func() bool { return len(mm.Monitor) > 0 && len(mm.Source) > 0 }, "Invalid monitor")
+
+	m := bcc.NewMonitor(mm.Monitor, mm.Source, defaultFlags, mm.Resolve)
+	for _, event := range mm.Events {
 		m.AddEvent(event)
 	}
-	if mm.IsEnd() {
+	if mm.IsEnd {
 		m.SetEnd()
 	}
 	factory.Register(m)

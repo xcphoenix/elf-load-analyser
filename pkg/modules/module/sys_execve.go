@@ -35,13 +35,18 @@ func (s sysExecveRetEvent) Render() *data.AnalyseData {
 //go:embed src/execve.c.k
 var execveSource string
 
-type sysExecve struct {
-	modules.MonitorModule
-}
-
 func init() {
 	entry := "call_event"
-	m := modules.NewPerfResolveMm(&sysExecve{}, true)
+	fnName := bpf.GetSyscallFnName("execve")
+	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+		Monitor: "syscall:execve",
+		Source:  execveSource,
+		Events: []*bcc.Event{
+			bcc.NewKprobeEvent("syscall__execve", fnName, -1),
+			bcc.NewKretprobeEvent("do_ret_sys_execve", fnName, -1),
+		},
+		IsEnd: true,
+	})
 	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, error) {
 		return modules.Render(d, &sysExecveEvent{}, true)
 	})
@@ -49,20 +54,5 @@ func init() {
 		return modules.Render(d, &sysExecveRetEvent{}, true)
 	})
 	m.SetMark(entry, enhance.StartMark)
-	modules.ModuleInit(m)
-}
-
-func (e *sysExecve) Monitor() string {
-	return "syscall:execve"
-}
-
-func (e *sysExecve) Source() string {
-	return execveSource
-}
-
-func (e *sysExecve) Events() []*bcc.Event {
-	fnName := bpf.GetSyscallFnName("execve")
-	k := bcc.NewKprobeEvent("syscall__execve", fnName, -1)
-	ke := bcc.NewKretprobeEvent("do_ret_sys_execve", fnName, -1)
-	return []*bcc.Event{ke, k}
+	modules.ModuleInit(m.Mm())
 }

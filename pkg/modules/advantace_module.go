@@ -44,19 +44,23 @@ type Enhancer interface {
 
 // PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
 type PerfResolveMm struct {
-	MonitorModule
+	*MonitorModule
 	tableIds  []string
 	table2Ctx map[string]*TableCtx
-	isEnd     bool
 }
 
-func NewPerfResolveMm(m MonitorModule, isEnd bool) *PerfResolveMm {
-	return &PerfResolveMm{
+func NewPerfResolveMm(m *MonitorModule) *PerfResolveMm {
+	perfMm := &PerfResolveMm{
 		MonitorModule: m,
 		tableIds:      []string{},
 		table2Ctx:     map[string]*TableCtx{},
-		isEnd:         isEnd,
 	}
+	perfMm.MonitorModule.ModuleResolver = perfMm
+	return perfMm
+}
+
+func (p *PerfResolveMm) Mm() *MonitorModule {
+	return p.MonitorModule
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
@@ -75,12 +79,12 @@ func (p *PerfResolveMm) RegisterTable(name string, loop bool,
 	tableChannel := make(chan []byte)
 	p.tableIds = append(p.tableIds, name)
 	p.table2Ctx[name] = &TableCtx{
-		Name:    fmt.Sprintf("%s@%s", p.Monitor(), name),
+		Name:    fmt.Sprintf("%s@%s", p.Monitor, name),
 		loop:    loop,
 		channel: tableChannel,
 		handler: handler,
 		mark:    map[string]struct{}{},
-		Monitor: p,
+		Monitor: *p.MonitorModule,
 	}
 	if !loop {
 		return nil
@@ -98,12 +102,12 @@ func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 }
 
 func (p *PerfResolveMm) IsEnd() bool {
-	return p.isEnd
+	return p.MonitorModule.IsEnd
 }
 
 func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
 	if len(p.tableIds) == 0 {
-		log.Warnf("Monitor %q without event", p.Monitor())
+		log.Warnf("Monitor %q without event", p.Monitor)
 		ready <- struct{}{}
 		return
 	}
@@ -135,7 +139,7 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 			ctx := p.table2Ctx[tName]
 
 			if chosen == chCnt+1 {
-				log.Infof("Monitor %q quit", p.Monitor())
+				log.Infof("Monitor %q quit", p.Monitor)
 				return
 			} else if chosen != chCnt {
 				d := value.Bytes()
@@ -152,12 +156,12 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 	for _, perfMap := range perfMaps {
 		perfMap.Start()
 	}
-	log.Infof("Monitor %s start...", p.Monitor())
+	log.Infof("Monitor %s start...", p.Monitor)
 	<-ok
 	for _, perfMap := range perfMaps {
 		perfMap.Stop()
 	}
-	log.Infof("Monitor %s stop...", p.Monitor())
+	log.Infof("Monitor %s stop...", p.Monitor)
 }
 
 func showRegisteredEnhancer() {
@@ -234,7 +238,7 @@ func initPerMaps(m *bpf.Module, p *PerfResolveMm) []*bpf.PerfMap {
 		t := bpf.NewTable(m.TableId(table), m)
 		perf, err := bpf.InitPerfMap(t, p.table2Ctx[table].channel, nil)
 		if err != nil {
-			log.Errorf("(%s, %s) Failed to init perf map: %v", p.Monitor(), "events", err)
+			log.Errorf("(%s, %s) Failed to init perf map: %v", p.Monitor, "events", err)
 		}
 		perfMaps[perI] = perf
 		perI++

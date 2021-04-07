@@ -3,6 +3,7 @@ package enhance
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
@@ -32,7 +33,7 @@ func (e eventOriginEnhancer) AfterHandle(tCtx *modules.TableCtx,
 		return aData, err
 	}
 	var buffer bytes.Buffer
-	events := tCtx.Monitor.Events()
+	events := tCtx.Monitor.Events
 	for i, event := range events {
 		if i > 0 {
 			buffer.WriteRune('@')
@@ -41,8 +42,8 @@ func (e eventOriginEnhancer) AfterHandle(tCtx *modules.TableCtx,
 	}
 	serializeEvents := buffer.String()
 
-	aData.PutExtra(EventOriginBccCode, tCtx.Monitor.Source())
-	aData.PutExtra(EventOriginMonitor, tCtx.Monitor.Monitor())
+	aData.PutExtra(EventOriginBccCode, tCtx.Monitor.Source)
+	aData.PutExtra(EventOriginMonitor, tCtx.Monitor.Monitor)
 	aData.PutExtra(EventOriginEvents, serializeEvents)
 
 	log.Debugf("%s ==> %s collect monitor data", eventOriginEnhancerName, tCtx.Name)

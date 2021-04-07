@@ -21,27 +21,16 @@ func (a bprmExecveEvent) Render() *data.AnalyseData {
 	return data.NewAnalyseData(form.NewMarkdown("execve"))
 }
 
-type bprmExecve struct {
-	modules.MonitorModule
-}
-
 func init() {
-	m := modules.NewPerfResolveMm(&bprmExecve{}, false)
+	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+		Monitor: "bprm_execve",
+		Source:  bprmExecveSrc,
+		Events: []*bcc.Event{
+			bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1),
+		},
+	})
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &bprmExecveEvent{}, true)
 	})
-	modules.ModuleInit(m)
-}
-
-func (a *bprmExecve) Monitor() string {
-	return "bprm_execve"
-}
-
-func (a *bprmExecve) Source() string {
-	return bprmExecveSrc
-}
-
-func (a *bprmExecve) Events() []*bcc.Event {
-	ke := bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1)
-	return []*bcc.Event{ke}
+	modules.ModuleInit(m.Mm())
 }
