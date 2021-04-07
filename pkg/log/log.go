@@ -37,6 +37,14 @@ var (
 var XFlagSet = xflag.OpInject(&curLevelDesc, "log", "info",
 	"log Level[info debug warn error], default: info", setConfigLevel)
 
+type OutError struct {
+	msg string
+}
+
+func (o OutError) Error() string {
+	return "Please see the output"
+}
+
 type logger interface {
 	Level() Level
 	Log(a interface{})
@@ -131,18 +139,7 @@ func Error(e error) {
 
 func Errorf(format string, a ...interface{}) {
 	innerLogf(errorLogger, format, a...)
-	var err error
-	var hasError bool
-	if len(a) > 0 {
-		if e, ok := a[len(a)-1].(error); ok {
-			err = e
-			hasError = true
-		}
-	}
-	if !hasError {
-		err = fmt.Errorf(format, a...)
-	}
-	state.WithError(err)
+	state.WithError(OutError{msg: fmt.Sprintf(format, a...)})
 	os.Exit(1)
 }
 

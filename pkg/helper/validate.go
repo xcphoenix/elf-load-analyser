@@ -27,10 +27,10 @@ func Equal(expected, actual interface{}, handler func(e, a interface{})) {
 	}, handler)
 }
 
-func WithTip(expected, actual interface{}, predicate func(expected, actual interface{}) bool, errorMsg string) {
-	Validate(expected, actual, predicate, func(e, a interface{}) {
+func Predicate(predicate func() bool, errorMsg string) {
+	if !predicate() {
 		log.Error(&ValidateError{msg: errorMsg})
-	})
+	}
 }
 
 func Validate(expected, actual interface{},

@@ -44,6 +44,9 @@ func EchoBanner() {
 	startIdx := helper.IfElse(kvLen >= banLen, 0, (banLen-kvLen)/2).(int)
 
 	bannerMaxLen, _ := strconv.Atoi(BannerLen)
+	if bannerMaxLen == 0 {
+		bannerMaxLen = 48
+	}
 	for i, s := range bannerArr {
 		fmt.Printf("%-*.*s", bannerMaxLen, bannerMaxLen, s)
 		if bIdx := i - startIdx; bIdx >= 0 && bIdx < kvLen {

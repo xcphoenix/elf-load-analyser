@@ -2,7 +2,6 @@ package env
 
 import (
 	"bytes"
-	"os/exec"
 	"runtime"
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
@@ -31,30 +30,17 @@ func CheckEnv() {
 	helper.EqualWithTip("linux", os, "Unsupported platform, just work on linux")
 
 	// Check kernel version
-	helper.WithTip("4.1", GetKernelVersion(), func(e, a interface{}) bool { return a.(string) >= e.(string) },
-		"Kernel version too old, linux kernel version 4.1 or newer is required\n"+
-			"You can see \"https://github.com/iovisor/bcc/blob/master/INSTALL.md\"",
-	)
+	if GetKernelVersion() < "4.1" {
+		log.Errorf("Kernel version too old, linux kernel version 4.1 or newer is required\n" +
+			"You can see \"https://github.com/iovisor/bcc/blob/master/INSTALL.md\"")
+	}
 
 	// Check kernel config
-	helper.WithTip(requiredConfigs, GetKernelConfigs(), func(expected, actual interface{}) bool {
-		kernelConfigs := actual.(map[string]struct{})
-		for _, entry := range expected.([]string) {
-			if _, ok := kernelConfigs[entry]; !ok {
-				return false
-			}
+	for _, entry := range requiredConfigs {
+		if _, ok := GetKernelConfigs()[entry]; !ok {
+			log.Errorf(generalConfigTip())
 		}
-		return true
-	}, generalConfigTip())
-
-	binary, lookErr := exec.LookPath("bcc")
-	if lookErr != nil {
-		// Check if bcc is installed
-		log.Infof(log.Em("The program depend on bcc, please make sure you have installed bcc, "+
-			"for more information, see %q"), "https://github.com/iovisor/bcc/blob/master/INSTALL.md")
-		log.Errorf("Bcc cannot find, %v", lookErr)
 	}
-	log.Infof("Found bcc: %q", binary)
 }
 
 func generalConfigTip() string {
