@@ -1,10 +1,12 @@
 package env
 
 import (
-	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"bytes"
 	"os/exec"
 	"runtime"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
 // requiredConfigs kernel required configuration,
@@ -15,9 +17,13 @@ var requiredConfigs = []string{
 	"CONFIG_BPF_JIT",
 	helper.IfElse(GetKernelVersion() >= "4.7", "CONFIG_HAVE_EBPF_JIT", "CONFIG_HAVE_BPF_JIT").(string),
 	"CONFIG_BPF_EVENTS",
+	// "CONFIG_IKHEADERS",
 }
 
+// 检查 BCC 环境
 func CheckEnv() {
+	EchoBanner()
+
 	os, arch := GetSysOS(), runtime.GOARCH
 	log.Infof("OS: %s\tARCH: %s", os, arch)
 
@@ -25,45 +31,41 @@ func CheckEnv() {
 	helper.EqualWithTip("linux", os, "Unsupported platform, just work on linux")
 
 	// Check kernel version
-	helper.WithTip("4.1", GetKernelVersion(), func(e, a interface{}) bool {
-		return a.(string) >= e.(string)
-	},
+	helper.WithTip("4.1", GetKernelVersion(), func(e, a interface{}) bool { return a.(string) >= e.(string) },
 		"Kernel version too old, linux kernel version 4.1 or newer is required\n"+
 			"You can see \"https://github.com/iovisor/bcc/blob/master/INSTALL.md\"",
 	)
 
 	// Check kernel config
-	helper.WithTip(requiredConfigs, GetKernelConfigs(),
-		func(expected, actual interface{}) bool {
-			kernelConfigs := actual.(map[string]struct{})
-			for _, entry := range expected.([]string) {
-				if _, ok := kernelConfigs[entry]; !ok {
-					return false
-				}
+	helper.WithTip(requiredConfigs, GetKernelConfigs(), func(expected, actual interface{}) bool {
+		kernelConfigs := actual.(map[string]struct{})
+		for _, entry := range expected.([]string) {
+			if _, ok := kernelConfigs[entry]; !ok {
+				return false
 			}
-			return true
-		},
-		`The kernel should have been compiled with the following flags set:
-    CONFIG_BPF=y
-    CONFIG_BPF_SYSCALL=y
-    CONFIG_BPF_JIT=y
-    # [for Linux kernel versions 4.1 through 4.6]
-    CONFIG_HAVE_BPF_JIT=y
-    # [for Linux kernel versions 4.7 and later]
-    CONFIG_HAVE_EBPF_JIT=y
-    # [optional, for kprobes]
-    CONFIG_BPF_EVENTS=y
-
-you can check your kernel config use cmd "zcat /proc/config.gz | zgrep '^[^#].*BPF.*'"
-for more information, see "https://github.com/iovisor/bcc/blob/master/INSTALL.md#kernel-configuration"
-`)
+		}
+		return true
+	}, generalConfigTip())
 
 	binary, lookErr := exec.LookPath("bcc")
 	if lookErr != nil {
 		// Check if bcc is installed
-		log.Infof(log.Emphasize("The program depend on bcc, please make sure you have installed bcc, "+
+		log.Infof(log.Em("The program depend on bcc, please make sure you have installed bcc, "+
 			"for more information, see %q"), "https://github.com/iovisor/bcc/blob/master/INSTALL.md")
 		log.Errorf("Bcc cannot find, %v", lookErr)
 	}
 	log.Infof("Found bcc: %q", binary)
+}
+
+func generalConfigTip() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("Check EBPF kernel config error\n" +
+		"The kernel should have been compiled with the following flags set:")
+	for i := range requiredConfigs {
+		buffer.WriteString("\n\t")
+		buffer.WriteString(requiredConfigs[i])
+	}
+	buffer.WriteString("\nyou can check your kernel config use cmd `zcat /proc/config.gz | zgrep '^[^#].*BPF.*'`\n" +
+		"for more information, see `https://github.com/iovisor/bcc/blob/master/INSTALL.md#kernel-configuration`")
+	return buffer.String()
 }

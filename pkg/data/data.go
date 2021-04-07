@@ -3,7 +3,6 @@ package data
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"strconv"
 	"time"
 )
@@ -98,7 +97,7 @@ func NewListAnalyseData(id string, name string, dataList []*AnalyseData) *Analys
 
 func NewErrAnalyseData(name string, s Status, desc string) *AnalyseData {
 	if s == Success {
-		log.Error("Error Status cannot be OK")
+		panic("error status cannot be OK")
 	}
 	if len(desc) == 0 {
 		desc = statusDesc(s)

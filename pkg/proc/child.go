@@ -2,9 +2,6 @@ package proc
 
 import (
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/core"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"golang.org/x/sys/unix"
 	"os"
 	"os/signal"
 	"os/user"
@@ -12,6 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/state"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -28,30 +32,56 @@ var procArg = struct {
 
 	iFile, oFile, eFile string
 	iFd, oFd, eFd       uintptr
-
-	needClosedFile []*os.File
 }{}
 
-var XFlagSet = core.InjectFlag(&procArg.args, "args", "", "(optional) program parameter, split by space", nil).
-	InjectFlag(&procArg.path, "path", "", "program path", pathHandle).
-	InjectFlag(&procArg.user, "user", "", "runner user", userHandle).
-	InjectFlag(&procArg.iFile, "in", "", "(optional) program stdin", func() (e error) {
-		procArg.iFd, e = getFd(procArg.iFile, true, 0)
-		return
-	}).
-	InjectFlag(&procArg.oFile, "out", "", "(optional) program stdout", func() (e error) {
-		procArg.oFd, e = getFd(procArg.oFile, false, 1)
-		return
-	}).
-	InjectFlag(&procArg.eFile, "err", "", "(optional) program stderr", func() (e error) {
-		procArg.eFd, e = getFd(procArg.eFile, false, 2)
-		return
-	})
+type fileFd struct {
+	fd    *uintptr
+	file  *string
+	read  bool
+	other uintptr
+}
 
+func fd(fd *uintptr, file *string, read bool, other uintptr) *fileFd {
+	return &fileFd{file: file, read: read, other: other, fd: fd}
+}
+
+func (ffd *fileFd) getFd() error {
+	file := *ffd.file
+	if len(file) == 0 {
+		*ffd.fd = ffd.other
+		return nil
+	}
+	var f *os.File
+	var e error
+	if ffd.read {
+		f, e = os.Open(file)
+	} else {
+		f, e = os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	}
+	if e != nil {
+		return fmt.Errorf("open %s error: %w", file, e)
+	}
+	state.RegisterHandler(state.Exit, func(_ error) error {
+		return f.Close()
+	})
+	*ffd.fd = f.Fd()
+	return nil
+}
+
+// XFlagSet 属于此模块的命令行参数
+var XFlagSet = xflag.OpInject(&procArg.args, "args", "", "program parameter, split by space", nil).
+	Inject(&procArg.path, "path", "", "program path", pathHandle).
+	Inject(&procArg.user, "user", "", "runner user", userHandle).
+	OpInject(&procArg.iFile, "in", "", "program stdin", fd(&procArg.iFd, &procArg.iFile, true, 0).getFd).
+	OpInject(&procArg.oFile, "out", "", "program stdout", fd(&procArg.oFd, &procArg.oFile, false, 1).getFd).
+	OpInject(&procArg.eFile, "err", "", "program stderr", fd(&procArg.eFd, &procArg.eFile, false, 2).getFd)
+
+// 获取程序路径
 func GetProgPath() string {
 	return procArg.path
 }
 
+// 控制流分离
 func ControlDetach() {
 	transExecPath, isChild := os.LookupEnv(childFlagEnv)
 	if isChild {
@@ -60,6 +90,7 @@ func ControlDetach() {
 	}
 }
 
+// 创建子进程，返回进程 pid
 func CreateProcess() int {
 	execArgs := procArg.args
 	args := os.Args
@@ -90,6 +121,7 @@ func CreateProcess() int {
 	return childPID
 }
 
+// 唤醒子进程
 func WakeUpChild(childPID int) {
 	err := syscall.Kill(childPID, syscall.SIGUSR1)
 	if err != nil {
@@ -140,22 +172,4 @@ func pathHandle() error {
 		return err
 	}
 	return nil
-}
-
-func getFd(file string, read bool, other uintptr) (uintptr, error) {
-	if len(file) == 0 {
-		return other, nil
-	}
-	var f *os.File
-	var e error
-	if read {
-		f, e = os.Open(file)
-	} else {
-		f, e = os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	}
-	if e != nil {
-		return 0, fmt.Errorf("open %s error: %w", file, e)
-	}
-	procArg.needClosedFile = append(procArg.needClosedFile, f)
-	return f.Fd(), nil
 }

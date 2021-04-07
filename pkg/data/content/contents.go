@@ -9,7 +9,7 @@ type Set struct {
 }
 
 func NewContentSet(contents ...data.Content) *Set {
-	return &Set{contents: append([]data.Content{}, contents...)}
+	return (&Set{contents: []data.Content{}}).Combine(contents...)
 }
 
 func (c *Set) Class() data.Type {
@@ -39,9 +39,14 @@ func (c *Set) Combine(contents ...data.Content) *Set {
 	if len(contents) == 0 {
 		return c
 	}
-	for i := range contents {
-		if contents[i] != data.EmptyContent {
-			c.contents = append(c.contents, contents[i])
+	for _, content := range contents {
+		if content == data.EmptyContent {
+			continue
+		}
+		if content.Class() == data.UnitType {
+			c.Combine(content.(*Set).contents...)
+		} else {
+			c.contents = append(c.contents, content)
 		}
 	}
 	return c

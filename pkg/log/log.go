@@ -3,12 +3,15 @@ package log
 import (
 	"bytes"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/core"
 	"io"
 	"log"
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/state"
 )
 
 type Level int8
@@ -31,8 +34,8 @@ var (
 	errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetHandle(err)
 )
 
-var XFlagSet = core.InjectFlag(&curLevelDesc, "log", "info",
-	"(optional) log Level[info debug warn error], default: info", setConfigLevel)
+var XFlagSet = xflag.OpInject(&curLevelDesc, "log", "info",
+	"log Level[info debug warn error], default: info", setConfigLevel)
 
 type logger interface {
 	Level() Level
@@ -120,13 +123,21 @@ func Debugf(format string, a ...interface{}) {
 	innerLogf(debugLogger, format, a...)
 }
 
-func Error(a interface{}) {
-	innerLog(errorLogger, a)
+func Error(e error) {
+	innerLog(errorLogger, e)
+	state.WithError(e)
 	os.Exit(1)
 }
 
 func Errorf(format string, a ...interface{}) {
 	innerLogf(errorLogger, format, a...)
+	var err error
+	if len(a) > 0 {
+		if e, ok := a[len(a)-1].(error); ok {
+			err = e
+		}
+	}
+	state.WithError(err)
 	os.Exit(1)
 }
 
@@ -145,7 +156,7 @@ func innerLogf(log logger, format string, a ...interface{}) {
 // #2
 func appendPkgLine(a interface{}) string {
 	pkg := getPkgLine()
-	return fmt.Sprintf("%-9s - %v", pkg, a)
+	return fmt.Sprintf(italic("%-9s")+" - %v", pkg, a)
 }
 
 // #1

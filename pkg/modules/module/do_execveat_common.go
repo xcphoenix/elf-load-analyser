@@ -3,6 +3,7 @@ package module
 import (
 	_ "embed" // for embed bcc source
 	"fmt"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
@@ -10,7 +11,7 @@ import (
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
 
-//go:embed src/do_execveat_common.cpp.k
+//go:embed src/do_execveat_common.c.k
 var doExecveatCommonSource string
 
 type execveatComEvent struct {
@@ -27,7 +28,7 @@ func (e execveatComEvent) Render() *data.AnalyseData {
 		fmt.Sprintf("flags = %d", e.Flags),
 		fmt.Sprintf("filename = %s", s),
 	)
-	return data.NewAnalyseData(msg)
+	return data.NewAnalyseData(content.NewContentSet(msg))
 }
 
 type doExecveatCommon struct {
@@ -35,7 +36,7 @@ type doExecveatCommon struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMonitorModule(&doExecveatCommon{})
+	m := modules.NewPerfResolveMm(&doExecveatCommon{})
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &execveatComEvent{}, true)
 	})

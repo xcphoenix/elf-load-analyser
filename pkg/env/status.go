@@ -4,8 +4,9 @@ import (
 	_ "embed" // embed for banner.txt
 	"encoding/json"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
 	"strings"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
 )
 
 const (
@@ -19,6 +20,7 @@ var banner string
 //go:embed status.json
 var status string
 
+// key value
 type Entry struct {
 	Key string `json:"key"`
 	Val string `json:"val"`
@@ -28,8 +30,7 @@ func (e Entry) parse() string {
 	return e.Key + kvDelimiter + e.Val
 }
 
-type Status []Entry
-
+// 输出 banner 以及版本信息
 func EchoBanner() {
 	kvList := parseStatus()
 	if len(kvList) == 0 {
@@ -53,12 +54,12 @@ func EchoBanner() {
 }
 
 func parseStatus() (kv []string) {
-	s := Status{}
+	var s []Entry
 	err := json.Unmarshal([]byte(status), &s)
 	if err != nil {
 		return []string{}
 	}
-	entries := []Entry(s)
+	entries := s
 	kv = make([]string, len(entries))
 	for idx, entry := range entries {
 		kv[idx] = entry.parse()

@@ -3,15 +3,16 @@ package web
 import (
 	"errors"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/core"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/render"
 	"net"
 	"net/http"
 	"strconv"
 	"syscall"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/phoenixxc/elf-load-analyser/pkg/render"
 )
 
 var (
@@ -19,7 +20,7 @@ var (
 	analyseDataCenter []*data.AnalyseData
 )
 
-var XFlagSet = core.InjectFlag(&port, "port", uint(0), "(optional) web server port, default use random",
+var XFlagSet = xflag.OpInject(&port, "port", uint(0), "web server port, default use random",
 	func() error {
 		if port >= 65535 {
 			return fmt.Errorf("invalid port: %v", port)
@@ -42,11 +43,11 @@ func startWebService(d []*data.AnalyseData) {
 MAIN:
 	addr, err := getAnyFreeAddr()
 	if err != nil {
-		log.Errorf("Cannot select port to start wev server: %v", err)
+		log.Errorf("Cannot select port to start web server: %v", err)
 	}
 
-	log.Infof(log.Emphasize("Try to start wev server on %s, "+
-		"you can view analysis report through this link if the startup is successful"), "http://"+addr)
+	log.Infof(log.Em("Try to start wev server on %s"), "http://"+addr)
+	log.Infof(log.Em("you can view analysis report through this link"))
 	err = http.ListenAndServe(addr, nil)
 	if err != nil {
 		errType := syscall.EADDRINUSE

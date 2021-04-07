@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"reflect"
+	"strconv"
+
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"reflect"
-	"strconv"
 )
 
 var (
@@ -45,9 +46,9 @@ func ModuleDefaultInit(mm MonitorModule) {
 
 // ModuleInit 注册 Module
 func ModuleInit(mm MonitorModule, end bool) {
-	// PerfResolveMonitorModule stop handler check
+	// PerfResolveMm stop handler check
 	if end {
-		if mm, ok := mm.(*PerfResolveMonitorModule); ok {
+		if mm, ok := mm.(*PerfResolveMm); ok {
 			mm.stopHandler = nil
 		}
 	}
@@ -114,29 +115,11 @@ func parseField(v reflect.Value, d *data.AnalyseData) {
 
 func toString(value reflect.Value) (key string, err error) {
 	switch value.Type().Kind() {
-	case reflect.Float64:
+	case reflect.Float32, reflect.Float64:
 		key = strconv.FormatFloat(value.Float(), 'f', -1, 64)
-	case reflect.Float32:
-		key = strconv.FormatFloat(value.Float(), 'f', -1, 64)
-	case reflect.Int:
-		key = strconv.Itoa(int(value.Int()))
-	case reflect.Uint:
-		key = strconv.FormatUint(value.Uint(), 10)
-	case reflect.Int8:
-		key = strconv.Itoa(int(value.Int()))
-	case reflect.Uint8:
-		key = strconv.Itoa(int(value.Uint()))
-	case reflect.Int16:
-		key = strconv.Itoa(int(value.Int()))
-	case reflect.Uint16:
-		key = strconv.Itoa(int(value.Uint()))
-	case reflect.Int32:
-		key = strconv.Itoa(int(value.Int()))
-	case reflect.Uint32:
-		key = strconv.Itoa(int(value.Uint()))
-	case reflect.Int64:
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
 		key = strconv.FormatInt(value.Int(), 10)
-	case reflect.Uint64:
+	case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
 		key = strconv.FormatUint(value.Uint(), 10)
 	case reflect.String:
 		key = value.String()

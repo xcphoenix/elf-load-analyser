@@ -3,6 +3,7 @@ package module
 import (
 	_ "embed" // for embed bcc source
 	"fmt"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
@@ -12,7 +13,7 @@ import (
 
 // about stack 512byte limit,
 // see: https://stackoverflow.com/questions/53627094/ebpf-track-values-longer-than-stack-size
-//go:embed src/alloc_bprm.cpp.k
+//go:embed src/alloc_bprm.c.k
 var allowBprmSource string
 
 type allocBprmEvent struct {
@@ -30,7 +31,7 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 		" rlimit stack max: 0x%X, current of top mem: 0x%X",
 		data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
 		a.RlimCur, a.RlimMax, a.CurTopOfMem)
-	return data.NewAnalyseData(content.NewMarkdown(s))
+	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown(s)))
 }
 
 type allocBprm struct {
@@ -38,7 +39,7 @@ type allocBprm struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMonitorModule(&allocBprm{})
+	m := modules.NewPerfResolveMm(&allocBprm{})
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &allocBprmEvent{}, true)
 	})

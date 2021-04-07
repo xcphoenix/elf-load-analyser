@@ -2,6 +2,7 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data/content"
@@ -9,7 +10,7 @@ import (
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
 
-//go:embed src/bprm_execve.cpp.k
+//go:embed src/bprm_execve.c.k
 var bprmExecveSrc string
 
 type bprmExecveEvent struct {
@@ -17,7 +18,7 @@ type bprmExecveEvent struct {
 }
 
 func (a bprmExecveEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(content.NewMarkdown("execve"))
+	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("execve")))
 }
 
 type bprmExecve struct {
@@ -25,7 +26,7 @@ type bprmExecve struct {
 }
 
 func init() {
-	m := modules.NewPerfResolveMonitorModule(&bprmExecve{})
+	m := modules.NewPerfResolveMm(&bprmExecve{})
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &bprmExecveEvent{}, true)
 	})

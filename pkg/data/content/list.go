@@ -5,8 +5,9 @@ import (
 )
 
 type List struct {
-	list   []string
+	items  []string
 	length int
+	kv     bool
 }
 
 func (l List) Class() data.Type {
@@ -14,9 +15,19 @@ func (l List) Class() data.Type {
 }
 
 func (l List) Data() interface{} {
-	return &l.list
+	return struct {
+		Items []string `json:"items"`
+		Kv    bool     `json:"kv"`
+	}{
+		l.items, l.kv,
+	}
+}
+
+func (l *List) SetKv() *List {
+	l.kv = true
+	return l
 }
 
 func NewList(list ...string) *List {
-	return &List{list: list}
+	return &List{items: list}
 }

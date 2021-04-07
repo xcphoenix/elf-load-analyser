@@ -3,6 +3,7 @@ package module
 import (
 	_ "embed" // for embed bcc source
 	"fmt"
+
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
@@ -16,7 +17,7 @@ type sysExecveEvent struct {
 }
 
 func (e sysExecveEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(content.NewMarkdown("start call"))
+	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("start call")))
 }
 
 type sysExecveRetEvent struct {
@@ -28,10 +29,10 @@ func (s sysExecveRetEvent) Render() *data.AnalyseData {
 	if s.Ret != 0 {
 		return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
 	}
-	return data.NewAnalyseData(content.NewMarkdown("execve success"))
+	return data.NewAnalyseData(content.NewContentSet(content.NewMarkdown("execve success")))
 }
 
-//go:embed src/execve.cpp.k
+//go:embed src/execve.c.k
 var execveSource string
 
 type sysExecve struct {
@@ -40,7 +41,7 @@ type sysExecve struct {
 
 func init() {
 	entry := "call_event"
-	m := modules.NewPerfResolveMonitorModule(&sysExecve{})
+	m := modules.NewPerfResolveMm(&sysExecve{})
 	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, error) {
 		return modules.Render(d, &sysExecveEvent{}, true)
 	})

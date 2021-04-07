@@ -2,12 +2,13 @@ package modules
 
 import (
 	"fmt"
-	bpf "github.com/iovisor/gobpf/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"reflect"
 	"strings"
 	"sync"
+
+	bpf "github.com/iovisor/gobpf/bcc"
+	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
 var (
@@ -35,22 +36,22 @@ func (t *TableCtx) IsMark(mk string) bool {
 	return ok
 }
 
-// Enhancer enhance on PerfResolveMonitorModule.Resolve
+// Enhancer enhance on PerfResolveMm.Resolve
 type Enhancer interface {
 	PreHandle(tCtx *TableCtx)
 	AfterHandle(tCtx *TableCtx, aData *data.AnalyseData, err error) (*data.AnalyseData, error)
 }
 
-// PerfResolveMonitorModule BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
-type PerfResolveMonitorModule struct {
+// PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
+type PerfResolveMm struct {
 	MonitorModule
 	tableIds    []string
 	table2Ctx   map[string]*TableCtx
-	stopHandler func(p *PerfResolveMonitorModule)
+	stopHandler func(p *PerfResolveMm)
 }
 
-func NewPerfResolveMonitorModule(m MonitorModule) *PerfResolveMonitorModule {
-	return &PerfResolveMonitorModule{
+func NewPerfResolveMm(m MonitorModule) *PerfResolveMm {
+	return &PerfResolveMm{
 		MonitorModule: m,
 		tableIds:      []string{},
 		table2Ctx:     map[string]*TableCtx{},
@@ -59,13 +60,13 @@ func NewPerfResolveMonitorModule(m MonitorModule) *PerfResolveMonitorModule {
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
-func (p *PerfResolveMonitorModule) RegisterOnceTable(name string,
+func (p *PerfResolveMm) RegisterOnceTable(name string,
 	handler func(data []byte) (*data.AnalyseData, error)) {
 	p.RegisterTable(name, false, handler)
 }
 
 // RegisterTable 注册 table, 若 loop 为 true，返回对应的 chan，否则返回 nil
-func (p *PerfResolveMonitorModule) RegisterTable(name string, loop bool,
+func (p *PerfResolveMm) RegisterTable(name string, loop bool,
 	handler func(data []byte) (*data.AnalyseData, error)) chan<- []byte {
 	name = strings.TrimSpace(name)
 	if handler == nil || len(name) == 0 {
@@ -87,11 +88,11 @@ func (p *PerfResolveMonitorModule) RegisterTable(name string, loop bool,
 	return tableChannel
 }
 
-func (p *PerfResolveMonitorModule) RegisterStopHandle(handler func(p *PerfResolveMonitorModule)) {
+func (p *PerfResolveMm) RegisterStopHandle(handler func(p *PerfResolveMm)) {
 	p.stopHandler = handler
 }
 
-func (p *PerfResolveMonitorModule) SetMark(name string, mk string) *PerfResolveMonitorModule {
+func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 	ctx, ok := p.table2Ctx[name]
 	if !ok {
 		return p
@@ -101,7 +102,7 @@ func (p *PerfResolveMonitorModule) SetMark(name string, mk string) *PerfResolveM
 }
 
 //nolint:funlen
-func (p *PerfResolveMonitorModule) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
+func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
 	if log.ConfigLevel() == log.DLevel {
 		mutex.Do(func() {
 			l := len(registeredEnhancer)
@@ -218,7 +219,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx,
 	return cases, tableNames
 }
 
-func initPerMaps(m *bpf.Module, p *PerfResolveMonitorModule) []*bpf.PerfMap {
+func initPerMaps(m *bpf.Module, p *PerfResolveMm) []*bpf.PerfMap {
 	perI := 0
 	perfMaps := make([]*bpf.PerfMap, len(p.tableIds))
 	for _, table := range p.tableIds {

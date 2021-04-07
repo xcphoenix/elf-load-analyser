@@ -2,7 +2,7 @@ package xelf
 
 import (
 	"debug/elf"
-	"fmt"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 )
 
@@ -43,7 +43,7 @@ func BuildDynamicInfo(f *elf.File) (dynamicInfo *DynamicInfo, err error) {
 }
 
 func isNotDynamic(f *elf.File) bool {
-	return f.SectionByType(elf.SHT_DYNAMIC) == nil
+	return f.Type != elf.ET_DYN
 }
 
 func getInterp(f *elf.File) (string, error) {
@@ -56,7 +56,8 @@ func getInterp(f *elf.File) (string, error) {
 			return data.TrimBytes2Str(d), nil
 		}
 	}
-	return "", fmt.Errorf("interp cannot found")
+	// 共享对象可以没有解释器
+	return "", nil
 }
 
 func getDynTagSymbols(f *elf.File) (map[elf.DynTag][]string, error) {

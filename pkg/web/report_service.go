@@ -2,8 +2,9 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 	"net/http"
+
+	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
 func AnalyseReportService(w http.ResponseWriter, _ *http.Request) {
