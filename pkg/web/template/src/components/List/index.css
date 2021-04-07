@@ -1,0 +1,20 @@
+.list-item {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-x: hidden;
+  margin-left: 5px;
+  list-style-type: none;
+}
+
+.list-item::before {
+  content: "\02022";
+  color: #b3b3b3;
+  line-height: 25px;
+  font-style: normal;
+  padding-right: 5px;
+  text-decoration: none;
+}
+
+.list-item::marker {
+  display: none !important;
+}

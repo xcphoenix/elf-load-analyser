@@ -1,13 +1,13 @@
 import React from 'react';
 
 import { Panel, Timeline, Tooltip, Whisper } from 'rsuite';
-import Markdown from 'react-markdown';
 
 import 'rsuite/lib/Timeline/styles';
 import 'rsuite/lib/Tooltip/styles';
 import './index.css';
 
 import { ReportModelState, ErrorStatus } from '@/models/report';
+import { BuilderJsxFromModel } from '@/data/RenderData';
 
 const Status = (props: ReportModelState) => {
   return (
@@ -19,14 +19,14 @@ const Status = (props: ReportModelState) => {
 };
 
 const Item = (props: ReportModelState) => {
-  const data = props.data ? props.data : 'No data';
+  const data = BuilderJsxFromModel(props);
   return (
-    <Timeline.Item dot={<Status {...props} />}>
+    <Timeline.Item dot={<Status {...props} key={props.name}/>}>
       <div className={'meta-item'}>
         <span className={'time'}> {props.time}</span>
         <span className={'name'}> {props.name}</span>
       </div>
-      <Markdown source={data} />
+      {data}
     </Timeline.Item>
   );
 };
@@ -34,7 +34,7 @@ const Item = (props: ReportModelState) => {
 const TimelineData = (props: ReportModelState) => {
   const dataListItems = props.dataList
     ? props.dataList.map((item) => <Item {...item} key={item.name} />)
-    : <div>Analyse Data not found</div>;
+    : <div>数据为空</div>;
   return (
     <Panel header={props.name} className={"footer"}>
       <Timeline endless={true}>{dataListItems}</Timeline>

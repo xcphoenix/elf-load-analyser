@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { connect, ReportModelState, ConnectProps } from 'umi';
 
-import { PanelGroup, Affix, Panel } from 'rsuite';
+import { PanelGroup, Affix } from 'rsuite';
 import 'rsuite/lib/PanelGroup/styles';
 import 'rsuite/lib/Panel/styles';
 
@@ -22,7 +22,8 @@ const emptyState: ReportModelState = {
   desc: '',
   time: '',
   type: 1,
-  data: '',
+  data: null,
+  extra: null,
   dataList: null,
 };
 
@@ -44,7 +45,7 @@ const Report: FC<ReportProps> = (props) => {
         <PanelGroup>
           <RenderData {...envRenderData} />
           <RenderData {...fileRenderData} />
-          <TimelineData {...analyseRenderData}/>
+          <TimelineData {...analyseRenderData} />
         </PanelGroup>
       </div>
     </div>

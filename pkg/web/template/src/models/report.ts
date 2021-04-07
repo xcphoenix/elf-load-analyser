@@ -1,5 +1,10 @@
 import { Effect, Reducer, Subscription, request } from 'umi';
 
+export interface RenderContent {
+  type: number;
+  data: any;
+}
+
 export interface ReportModelState {
   id: string;
   name: string,
@@ -7,7 +12,8 @@ export interface ReportModelState {
   desc: string,
   time: string,
   type: number,
-  data: string | null,
+  data: Array<RenderContent> | null,
+  extra: object | null,
   dataList: ReportModelState[] | null,
 }
 
@@ -32,8 +38,9 @@ const initState: ReportModelState = {
   desc: 'init...',
   time: 'init...',
   type: 1,
-  data: 'init...',
+  data: null,
   dataList: null,
+  extra: {},
 };
 
 const ReportModel: ReportModelType = {
@@ -42,7 +49,7 @@ const ReportModel: ReportModelType = {
   state: [initState, initState, initState],
 
   effects: {
-    * fetch({ type, payload }, { call, put, select }) {
+    * fetch({ type, payload }, { put }) {
       const data = yield request('/api/report');
       yield put({
         type: 'save',
