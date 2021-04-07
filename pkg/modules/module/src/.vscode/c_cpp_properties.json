@@ -1,14 +1,15 @@
 {
   // https://code.visualstudio.com/docs/cpp/c-cpp-properties-schema-reference
   "env": {
-    "kernel_module": "5.10.18-1-MANJARO"
+    // use cmd `uname -r`
+    "kernel_module": "5.10.23-1-MANJARO"
   },
   "configurations": [
     {
       "name": "Linux",
       "includePath": [
         "${workspaceFolder}/**",
-        "/usr/include/",
+        // "/usr/include/",
         // extra header locations
         "/home/xuanc/文档/CodePratice/ELF/bcc/src/cc/",
         "/usr/lib/modules/${env:kernel_module}/build/include/",
@@ -18,7 +19,7 @@
       "defines": ["_PID_", "_DEV_"],
       "compilerPath": "/usr/bin/clang",
       "cStandard": "c17",
-      "cppStandard": "c++14",
+      "cppStandard": "c++11",
       "intelliSenseMode": "linux-clang-x64"
     }
   ],

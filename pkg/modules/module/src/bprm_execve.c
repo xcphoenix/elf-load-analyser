@@ -1,9 +1,5 @@
 // https://elixir.bootlin.com/linux/v5.10.7/source/fs/exec.c#L1775
 
-#include <linux/fs.h>
-#include <linux/sched.h>
-
-#include "_dev.h"
 #include "common.h"
 
 TDATA(bprm_execve_event, 

@@ -7,15 +7,20 @@ readonly FRONTED_CHECKSUM="md5sums"
 
 function merge_src() {
     rm_file "*.${OUT_SUFFIX}"
-    for line in *.cpp
+    for line in *.c
     do
+        # get local headers and include them, output to "${line}"."${OUT_SUFFIX}"
         grep -E '^#include[[:blank:]]+"[[:print:]]+"$' "${line}" | awk '{print $2}' | tr -d '"' \
         | awk '{
             if (NF > 0) {
                 if ($1!="_dev.h") print $1
             }}' | xargs cat > "${line}"."${OUT_SUFFIX}"
+        # append newline
         echo "" >> "${line}"."${OUT_SUFFIX}"
+        # remove included headers then append source file to new file
         sed '/^[[:blank:]]*#include[[:blank:]]\+"[[:print:]]\+"$/d' "${line}" | cat >> "${line}"."${OUT_SUFFIX}"
+        # remove _dev.h include
+        sed -i '/^[[:blank:]]*#include[[:blank:]]\+"_dev.h"$/d' "${line}"."${OUT_SUFFIX}"
     done
 }
 

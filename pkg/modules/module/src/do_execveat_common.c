@@ -1,7 +1,3 @@
-#include <linux/fs.h>
-#include <linux/sched.h>
-
-#include "_dev.h"
 #include "common.h"
 
 TDATA(exec_event, 

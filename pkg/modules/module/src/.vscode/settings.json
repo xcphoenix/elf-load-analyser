@@ -1,7 +1,7 @@
 {
     "files.associations": {
-        "fs.h": "cpp",
-        "typeinfo": "cpp",
-        "*.inc": "cpp"
+    },
+    "files.exclude": {
+        "**/*.c.k": true
     }
 }
