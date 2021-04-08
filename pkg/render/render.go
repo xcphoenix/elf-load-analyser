@@ -2,14 +2,6 @@ package render
 
 import "github.com/phoenixxc/elf-load-analyser/pkg/data"
 
-type Ctx struct {
-	Filepath string
-}
-
-func NewCtx(filepath string) *Ctx {
-	return &Ctx{Filepath: filepath}
-}
-
 type Type struct {
 	ID   string
 	Name string

@@ -1,11 +1,11 @@
 package bcc
 
 import (
+	"debug/elf"
 	"strconv"
 	"strings"
 
 	bpf "github.com/iovisor/gobpf/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
@@ -35,11 +35,17 @@ func (t Type) String() (name string) {
 }
 
 type PreParam struct {
-	Pid int
+	Pid  int
+	Path string
+
+	// ELF 文件相关
+	Header elf.FileHeader
+	IsDyn  bool
+	Interp string
 }
 
-func NewCtx(pid int) *PreParam {
-	return &PreParam{Pid: pid}
+func BuildCtx(path string) PreParam {
+	return PreParam{Path: path}
 }
 
 type action interface {
@@ -47,6 +53,8 @@ type action interface {
 	Attach(m *bpf.Module, fd int) error
 	// Loader load symbol
 	Load(m *bpf.Module) (int, error)
+	// LazyInit lazy init by PreParam
+	LazyInit(ctx PreParam)
 }
 
 type Event struct {
@@ -61,25 +69,15 @@ func NewEvent(class Type, name string, fnName string) *Event {
 }
 
 type Monitor struct {
-	isEnd        bool // end monitor level
+	events       []*Event
 	event2Action map[*Event]*action
 	Name         string
 	Source       string // 模块源
 	CFlags       []string
-	Resolve      func(m *bpf.Module, send chan<- *data.AnalyseData, ready chan<- struct{}, ok <-chan struct{})
 }
 
-func (m *Monitor) IsEnd() bool {
-	return m.isEnd
-}
-
-func (m *Monitor) SetEnd() {
-	m.isEnd = true
-}
-
-func NewMonitor(name string, source string, cFlags []string,
-	resolve func(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, ok <-chan struct{})) *Monitor {
-	return &Monitor{Name: name, Source: source, CFlags: cFlags, Resolve: resolve, isEnd: false}
+func NewMonitor(name string, source string, cFlags []string) *Monitor {
+	return &Monitor{Name: name, Source: source, CFlags: cFlags}
 }
 
 // initialize 创建 bpf 模块
@@ -88,18 +86,25 @@ func (m *Monitor) initialize() *bpf.Module {
 }
 
 // PreProcessing 预处理
-func (m *Monitor) PreProcessing(ctx *PreParam) error {
+func (m *Monitor) PreProcessing(ctx PreParam) {
+	if m.event2Action == nil {
+		m.event2Action = make(map[*Event]*action)
+	}
+	// init
+	for _, event := range m.events {
+		event.LazyInit(ctx)
+		m.event2Action[event] = &event.action
+	}
 	// PID replace
 	m.Source = strings.ReplaceAll(m.Source, "_PID_", strconv.Itoa(ctx.Pid))
-	return nil
 }
 
 // AddEvent 设置事件
 func (m *Monitor) AddEvent(event *Event) *Monitor {
-	if m.event2Action == nil {
-		m.event2Action = make(map[*Event]*action)
+	if m.events == nil {
+		m.events = []*Event{}
 	}
-	m.event2Action[event] = &event.action
+	m.events = append(m.events, event)
 	return m
 }
 

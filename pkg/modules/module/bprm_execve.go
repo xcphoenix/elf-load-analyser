@@ -3,6 +3,8 @@ package module
 import (
 	_ "embed" // for embed bcc source
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
@@ -32,5 +34,5 @@ func init() {
 	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &bprmExecveEvent{}, true)
 	})
-	modules.ModuleInit(m.Mm())
+	factory.Register(m.Mm())
 }

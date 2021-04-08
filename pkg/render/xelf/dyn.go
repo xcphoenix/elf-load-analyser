@@ -15,11 +15,11 @@ type DynamicInfo struct {
 }
 
 func BuildDynamicInfo(f *elf.File) (dynamicInfo *DynamicInfo, err error) {
-	if isNotDynamic(f) {
+	if IsNotDynamic(f) {
 		return nil, nil
 	}
 	dynamicInfo = &DynamicInfo{}
-	if dynamicInfo.Interp, err = getInterp(f); err != nil {
+	if dynamicInfo.Interp, err = GetInterp(f); err != nil {
 		return nil, err
 	}
 
@@ -42,11 +42,11 @@ func BuildDynamicInfo(f *elf.File) (dynamicInfo *DynamicInfo, err error) {
 	return
 }
 
-func isNotDynamic(f *elf.File) bool {
+func IsNotDynamic(f *elf.File) bool {
 	return f.Type != elf.ET_DYN
 }
 
-func getInterp(f *elf.File) (string, error) {
+func GetInterp(f *elf.File) (string, error) {
 	for i := range f.Progs {
 		if f.Progs[i].Type == elf.PT_INTERP {
 			d, err := readBytes(f.Progs[i].Open(), 1024)

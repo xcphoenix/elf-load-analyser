@@ -12,7 +12,6 @@ import (
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
 )
 
@@ -47,21 +46,26 @@ type MonitorModule struct {
 	Events []*bcc.Event
 	// IsEnd 是否标记为最后
 	IsEnd bool
+	// LazyInit 延迟初始化
+	LazyInit func(param bcc.PreParam)
 }
 
 // ModuleInit 注册 ModuleResolver
-func ModuleInit(mm *MonitorModule) {
+func ModuleInit(mm *MonitorModule, param bcc.PreParam) *bcc.Monitor {
 	// check
 	helper.Predicate(func() bool { return len(mm.Monitor) > 0 && len(mm.Source) > 0 }, "Invalid monitor")
 
-	m := bcc.NewMonitor(mm.Monitor, mm.Source, defaultFlags, mm.Resolve)
+	// lazy init
+	if mm.LazyInit != nil {
+		mm.LazyInit(param)
+	}
+
+	// create
+	m := bcc.NewMonitor(mm.Monitor, mm.Source, defaultFlags)
 	for _, event := range mm.Events {
 		m.AddEvent(event)
 	}
-	if mm.IsEnd {
-		m.SetEnd()
-	}
-	factory.Register(m)
+	return m
 }
 
 func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, error) {

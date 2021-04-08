@@ -4,6 +4,8 @@ import (
 	_ "embed" // for embed bcc source
 	"fmt"
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
+
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
@@ -54,5 +56,5 @@ func init() {
 		return modules.Render(d, &sysExecveRetEvent{}, true)
 	})
 	m.SetMark(entry, enhance.StartMark)
-	modules.ModuleInit(m.Mm())
+	factory.Register(m.Mm())
 }

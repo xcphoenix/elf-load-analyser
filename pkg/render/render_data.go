@@ -4,6 +4,8 @@ import (
 	"debug/elf"
 	"errors"
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/data"
 	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
 	"github.com/phoenixxc/elf-load-analyser/pkg/log"
@@ -11,12 +13,12 @@ import (
 
 var dataCenter = make([]*data.AnalyseData, 3)
 
-func PreAnalyse(ctx *Ctx) {
+func PreAnalyse(param *bcc.PreParam) {
 	// env
 	d, _ := doRender(NewEnvRender())
 	dataCenter[0] = d
 	// elf
-	elfRender, e := NewElfRender(ctx.Filepath)
+	elfRender, e := NewElfRender(param.Path)
 	if e != nil {
 		var formatErr *elf.FormatError
 		if ok := errors.As(e, &formatErr); ok {
@@ -25,6 +27,7 @@ func PreAnalyse(ctx *Ctx) {
 			log.Errorf("Analyse target binary form error, %v", e)
 		}
 	}
+	param.Header, param.IsDyn, param.Interp = elfRender.ElfData()
 	d, _ = doRender(elfRender)
 	dataCenter[1] = d
 }

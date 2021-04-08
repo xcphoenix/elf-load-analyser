@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
+
 	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
 
 	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
@@ -12,23 +14,30 @@ import (
 
 var (
 	mutex           sync.Mutex
-	finishedMonitor *bcc.Monitor
-	factory         []*bcc.Monitor
+	registerMutex   sync.Mutex
+	finishedMonitor *modules.MonitorModule
+	factory         []*modules.MonitorModule
 )
 
-func Register(monitor *bcc.Monitor) {
-	if monitor.IsEnd() {
+func Register(mm *modules.MonitorModule) {
+	registerMutex.Lock()
+	defer registerMutex.Unlock()
+
+	if mm.IsEnd {
 		if finishedMonitor != nil {
 			log.Errorf("only one monitor can be set end")
 		}
-		finishedMonitor = monitor
+		finishedMonitor = mm
 		return
 	}
-	factory = append(factory, monitor)
+	factory = append(factory, mm)
 }
 
 // LoadMonitors ctx The run context, ctr control the proc when to stop
-func LoadMonitors(param *bcc.PreParam) (p *Pool) {
+func LoadMonitors(param bcc.PreParam) (p *Pool) {
+	registerMutex.Lock()
+	defer registerMutex.Unlock()
+
 	// 确保有且仅有一个 monitor 被设置为 end
 	if finishedMonitor == nil {
 		log.Errorf("no monitors be set end")
@@ -42,33 +51,29 @@ func LoadMonitors(param *bcc.PreParam) (p *Pool) {
 	ch := p.Chan()
 	p.Init(rootMonitorCtx.Done())
 
+	monitors, lastMonitor := initMm(param)
+
 	log.Info("Start load monitor....")
-	for _, monitor := range factory {
+	for idx, monitor := range monitors {
 		monitor := monitor
-		if err := monitor.PreProcessing(param); err != nil {
-			log.Errorf("Monitor %q pre processing error: %v", monitor.Name, err)
-		}
+		monitor.PreProcessing(param)
 		m := monitor.DoAction()
+		idx := idx
 		go func() {
-			defer func() {
-				mutex.Unlock()
-			}()
-			monitor.Resolve(m, ch, ready, rootMonitorCtx.Done())
+			defer mutex.Unlock()
+			factory[idx].Resolve(m, ch, ready, rootMonitorCtx.Done())
 			mutex.Lock()
 			m.Close()
 		}()
 	}
 
-	if err := finishedMonitor.PreProcessing(param); err != nil {
-		log.Errorf("Monitor %q pre processing error: %v", finishedMonitor.Name, err)
-	}
-	m := finishedMonitor.DoAction()
+	lastMonitor.PreProcessing(param)
+	m := lastMonitor.DoAction()
 	go func() {
 		defer func() {
 			rootCancelFunc()
 			mutex.Unlock()
 		}()
-
 		finishedMonitor.Resolve(m, ch, ready, rootCtx.Done())
 		mutex.Lock()
 		m.Close()
@@ -80,4 +85,13 @@ func LoadMonitors(param *bcc.PreParam) (p *Pool) {
 	log.Info("Load monitors ok")
 
 	return
+}
+
+func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor) {
+	monitors := make([]*bcc.Monitor, len(factory))
+	for idx, mm := range factory {
+		monitors[idx] = modules.ModuleInit(mm, param)
+	}
+	lastMonitor := modules.ModuleInit(finishedMonitor, param)
+	return monitors, lastMonitor
 }

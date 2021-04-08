@@ -27,14 +27,15 @@ func main() {
 	proc.ControlDetach()
 	env.CheckEnv()
 
-	render.PreAnalyse(render.NewCtx(proc.GetProgPath()))
+	param := bcc.BuildCtx(proc.GetProgPath())
+	render.PreAnalyse(&param)
 
-	childPID := proc.CreateProcess()
+	param.Pid = proc.CreateProcess()
 	state.PushState(state.ProcessCreated)
 
-	pool := factory.LoadMonitors(bcc.NewCtx(childPID))
+	pool := factory.LoadMonitors(param)
 	state.PushState(state.MonitorLoaded)
-	proc.WakeUpChild(childPID)
+	proc.WakeUpChild(param.Pid)
 
 	web.VisualAnalyseData(pool)
 

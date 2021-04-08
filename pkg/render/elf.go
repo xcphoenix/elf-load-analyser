@@ -30,6 +30,16 @@ func NewElfRender(filepath string) (*ElfRender, error) {
 	return &ElfRender{filepath: filepath, f: eFile}, nil
 }
 
+func (e *ElfRender) ElfData() (elf.FileHeader, bool, string) {
+	fHeader := e.f.FileHeader
+	isDyn := !xelf.IsNotDynamic(e.f)
+	interp, err := xelf.GetInterp(e.f)
+	if err != nil {
+		log.Errorf("Read elf interp error: %v", err)
+	}
+	return fHeader, isDyn, interp
+}
+
 func (e *ElfRender) Render() (d *data.AnalyseData, err error) {
 	renderRes := data.NewSet(
 		form.NewTitleMarkdown(form.H2, "ELF File Header"),
