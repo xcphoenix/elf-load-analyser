@@ -47,17 +47,19 @@ type MonitorModule struct {
 	// IsEnd 是否标记为最后
 	IsEnd bool
 	// LazyInit 延迟初始化
-	LazyInit func(param bcc.PreParam)
+	LazyInit func(mm *MonitorModule, param bcc.PreParam) bool
 }
 
-// ModuleInit 注册 ModuleResolver
-func ModuleInit(mm *MonitorModule, param bcc.PreParam) *bcc.Monitor {
+// ModuleInit 初始化 Module, 返回创建的 Monitor、是否标记为 end，是否跳过此 Module
+func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool) {
 	// check
-	helper.Predicate(func() bool { return len(mm.Monitor) > 0 && len(mm.Source) > 0 }, "Invalid monitor")
+	helper.Predicate(func() bool { return mm != nil && len(mm.Monitor) > 0 && len(mm.Source) > 0 }, "Invalid monitor")
 
 	// lazy init
 	if mm.LazyInit != nil {
-		mm.LazyInit(param)
+		if skip := mm.LazyInit(mm, param); skip {
+			return nil, false, true
+		}
 	}
 
 	// create
@@ -65,7 +67,7 @@ func ModuleInit(mm *MonitorModule, param bcc.PreParam) *bcc.Monitor {
 	for _, event := range mm.Events {
 		m.AddEvent(event)
 	}
-	return m
+	return m, mm.IsEnd, false
 }
 
 func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, error) {

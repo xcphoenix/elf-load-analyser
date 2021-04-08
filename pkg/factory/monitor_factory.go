@@ -13,23 +13,15 @@ import (
 )
 
 var (
-	mutex           sync.Mutex
-	registerMutex   sync.Mutex
-	finishedMonitor *modules.MonitorModule
-	factory         []*modules.MonitorModule
+	mutex         sync.Mutex
+	registerMutex sync.Mutex
+	factory       []*modules.MonitorModule
 )
 
 func Register(mm *modules.MonitorModule) {
 	registerMutex.Lock()
 	defer registerMutex.Unlock()
 
-	if mm.IsEnd {
-		if finishedMonitor != nil {
-			log.Errorf("only one monitor can be set end")
-		}
-		finishedMonitor = mm
-		return
-	}
 	factory = append(factory, mm)
 }
 
@@ -37,11 +29,6 @@ func Register(mm *modules.MonitorModule) {
 func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	registerMutex.Lock()
 	defer registerMutex.Unlock()
-
-	// 确保有且仅有一个 monitor 被设置为 end
-	if finishedMonitor == nil {
-		log.Errorf("no monitors be set end")
-	}
 
 	rootCtx := state.CreateRootContent()
 	rootMonitorCtx, rootCancelFunc := context.WithCancel(rootCtx)
@@ -51,10 +38,15 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	ch := p.Chan()
 	p.Init(rootMonitorCtx.Done())
 
-	monitors, lastMonitor := initMm(param)
+	monitors, lastMonitor, lastIdx := initMm(param)
+	cnt := 1
 
 	log.Info("Start load monitor....")
 	for idx, monitor := range monitors {
+		if monitor == nil {
+			continue
+		}
+		cnt++
 		monitor := monitor
 		monitor.PreProcessing(param)
 		m := monitor.DoAction()
@@ -74,12 +66,12 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 			rootCancelFunc()
 			mutex.Unlock()
 		}()
-		finishedMonitor.Resolve(m, ch, ready, rootCtx.Done())
+		factory[lastIdx].Resolve(m, ch, ready, rootCtx.Done())
 		mutex.Lock()
 		m.Close()
 	}()
 
-	for cnt := len(factory) + 1; cnt > 0; cnt-- {
+	for ; cnt > 0; cnt-- {
 		<-ready
 	}
 	log.Info("Load monitors ok")
@@ -87,11 +79,35 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	return
 }
 
-func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor) {
+func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
+	var lastMonitor *bcc.Monitor
 	monitors := make([]*bcc.Monitor, len(factory))
+
+	cnt, lastIdx := 0, -1
 	for idx, mm := range factory {
-		monitors[idx] = modules.ModuleInit(mm, param)
+		tmpMonitor, end, skip := modules.ModuleInit(mm, param)
+		if skip {
+			continue
+		}
+		if end {
+			if lastIdx >= 0 {
+				log.Errorf("only one monitor can be set end")
+			}
+			lastMonitor = tmpMonitor
+			lastIdx = idx
+			continue
+		}
+		monitors[idx] = tmpMonitor
+		cnt++
 	}
-	lastMonitor := modules.ModuleInit(finishedMonitor, param)
-	return monitors, lastMonitor
+
+	if lastIdx < 0 {
+		log.Errorf("no monitor be set end")
+	}
+
+	if cnt == 0 {
+		log.Errorf("No invalid monitors")
+	}
+
+	return monitors, lastMonitor, lastIdx
 }
