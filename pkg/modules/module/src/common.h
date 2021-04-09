@@ -9,8 +9,22 @@
 
 #include "_dev.h"
 
-#define _XC_DEBUG 
+#define _X_DEBUG_
 #define TEMPTY
+
+#if ELF_EXEC_PAGESIZE > PAGE_SIZE
+#define ELF_MIN_ALIGN ELF_EXEC_PAGESIZE
+#else
+#define ELF_MIN_ALIGN PAGE_SIZE
+#endif
+
+#ifndef ELF_CORE_EFLAGS
+#define ELF_CORE_EFLAGS 0
+#endif
+
+#define ELF_PAGESTART(_v) ((_v) & ~(unsigned long)(ELF_MIN_ALIGN - 1))
+#define ELF_PAGEOFFSET(_v) ((_v) & (ELF_MIN_ALIGN - 1))
+#define ELF_PAGEALIGN(_v) (((_v) + ELF_MIN_ALIGN - 1) & ~(ELF_MIN_ALIGN - 1))
 
 struct _common {
     u64 ts;

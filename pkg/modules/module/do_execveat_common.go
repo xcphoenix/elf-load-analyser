@@ -24,14 +24,14 @@ type execveatComEvent struct {
 	Filename [256]byte
 }
 
-func (e execveatComEvent) Render() *data.AnalyseData {
+func (e execveatComEvent) Render() (*data.AnalyseData, bool) {
 	s := data.TrimBytes2Str(e.Filename[:])
 	var msg = form.NewList(
 		fmt.Sprintf("fd = %d", e.Fd),
 		fmt.Sprintf("flags = %d", e.Flags),
 		fmt.Sprintf("filename = %s", s),
 	)
-	return data.NewAnalyseData(msg)
+	return data.NewAnalyseData(msg), true
 }
 
 func init() {
@@ -42,7 +42,7 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__do_execveat_common", "do_execveat_common", -1),
 		},
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
+	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, bool, error) {
 		return modules.Render(data, &execveatComEvent{}, true)
 	})
 	factory.Register(m.Mm())

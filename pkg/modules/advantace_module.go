@@ -20,6 +20,8 @@ func RegisteredEnhancer(name string, e Enhancer) {
 	registeredEnhancer[name] = e
 }
 
+type TableHandler func(data []byte) (*data.AnalyseData, bool, error)
+
 // TableCtx table context
 type TableCtx struct {
 	Name    string
@@ -27,7 +29,7 @@ type TableCtx struct {
 
 	loop    bool
 	channel chan []byte
-	handler func(data []byte) (*data.AnalyseData, error)
+	handler TableHandler
 	mark    map[string]struct{}
 }
 
@@ -64,14 +66,12 @@ func (p *PerfResolveMm) Mm() *MonitorModule {
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
-func (p *PerfResolveMm) RegisterOnceTable(name string,
-	handler func(data []byte) (*data.AnalyseData, error)) {
+func (p *PerfResolveMm) RegisterOnceTable(name string, handler TableHandler) {
 	p.RegisterTable(name, false, handler)
 }
 
 // RegisterTable 注册 table, 若 loop 为 true，返回对应的 chan，否则返回 nil
-func (p *PerfResolveMm) RegisterTable(name string, loop bool,
-	handler func(data []byte) (*data.AnalyseData, error)) chan<- []byte {
+func (p *PerfResolveMm) RegisterTable(name string, loop bool, handler TableHandler) chan<- []byte {
 	name = strings.TrimSpace(name)
 	if handler == nil || len(name) == 0 {
 		return nil
@@ -105,6 +105,7 @@ func (p *PerfResolveMm) IsEnd() bool {
 	return p.MonitorModule.IsEnd
 }
 
+//nolint:funlen
 func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
 	if len(p.tableIds) == 0 {
 		log.Warnf("Monitor %q without event", p.Monitor)
@@ -132,25 +133,28 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 			if !value.IsValid() || !ok {
 				cases[chosen].Chan = reflect.ValueOf(nil)
 				remaining--
+				if chosen == chCnt+1 {
+					log.Debugf("Monitor %q exit", p.Monitor)
+					return
+				}
 				continue
 			}
 
 			tName := tableNames[chosen]
 			ctx := p.table2Ctx[tName]
 
-			if chosen == chCnt+1 {
-				log.Infof("Monitor %q quit", p.Monitor)
+			d := value.Bytes()
+			if goOn := dataProcessing(d, ctx, ch); !goOn {
+				log.Debugf("Monitor %q quit", p.Monitor)
 				return
-			} else if chosen != chCnt {
-				d := value.Bytes()
-				dataProcessing(d, ctx, ch)
-				if ctx.loop {
-					continue
-				}
+			}
+			if ctx.loop {
+				continue
 			}
 			cases[chosen].Chan = reflect.ValueOf(nil)
 			remaining--
 		}
+		log.Debugf("Monitor %q quit", p.Monitor)
 	}()
 
 	for _, perfMap := range perfMaps {
@@ -181,14 +185,14 @@ func showRegisteredEnhancer() {
 	}
 }
 
-func dataProcessing(d []byte, ctx *TableCtx, ch chan<- *data.AnalyseData) {
+func dataProcessing(d []byte, ctx *TableCtx, ch chan<- *data.AnalyseData) bool {
 	for name, handler := range registeredEnhancer {
 		log.Debugf("%s pre handle for %q", name, ctx.Name)
 		handler.PreHandle(ctx)
 	}
 
 	log.Infof("Resolve %q...", ctx.Name)
-	analyseData, err := ctx.handler(d)
+	analyseData, goOn, err := ctx.handler(d)
 	log.Debugf("Receive data from %q, %v", ctx.Name, analyseData)
 
 	for name, handler := range registeredEnhancer {
@@ -204,6 +208,7 @@ func dataProcessing(d []byte, ctx *TableCtx, ch chan<- *data.AnalyseData) {
 		}
 		ch <- analyseData
 	}
+	return goOn
 }
 
 func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- struct{},

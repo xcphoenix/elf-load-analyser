@@ -28,12 +28,13 @@ type allocBprmEvent struct {
 	RlimMax     uint64
 }
 
-func (a allocBprmEvent) Render() *data.AnalyseData {
-	s := fmt.Sprintf("filename: %q, fdpath: %q, interp: %q, rlimit stack cur: 0x%X,"+
-		" rlimit stack max: 0x%X, current of top mem: 0x%X",
+func (a allocBprmEvent) Render() (*data.AnalyseData, bool) {
+	s := fmt.Sprintf("分配空间，保存二进制文件参数\n\n"+
+		"filename: %q, fdpath: %q, interp: %q, rlimit stack cur: 0x%X, "+
+		"rlimit stack max: 0x%X, current of top mem: 0x%X",
 		data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
 		a.RlimCur, a.RlimMax, a.CurTopOfMem)
-	return data.NewAnalyseData(form.NewMarkdown(s))
+	return data.NewAnalyseData(form.NewMarkdown(s)), true
 }
 
 func init() {
@@ -45,7 +46,7 @@ func init() {
 		},
 		IsEnd: false,
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
+	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, bool, error) {
 		return modules.Render(data, &allocBprmEvent{}, true)
 	})
 	factory.Register(m.Mm())

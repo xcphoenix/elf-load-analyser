@@ -15,7 +15,6 @@ int syscall__execve(struct pt_regs *ctx, const char __user *filename,
     }
     struct call_sys_execve e = {};
     init_tdata(&e);
-    bpf_trace_printk("call_syscall_execve => ns: %llu\n", e.ts);
     call_event.perf_submit(ctx, &e, sizeof(struct call_sys_execve));
     return 0;
 }

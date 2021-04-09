@@ -12,27 +12,27 @@ import (
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
 
-//go:embed src/bprm_execve.c.k
-var bprmExecveSrc string
+//go:embed src/load_elf_phdrs.c.k
+var loadElfPhdrsSrc string
 
-type bprmExecveEvent struct {
+type loadElfPhdrsEvent struct {
 	enhance.TimeEventResult
 }
 
-func (a bprmExecveEvent) Render() (*data.AnalyseData, bool) {
-	return data.NewAnalyseData(form.NewMarkdown("开始执行新程序...")), true
+func (a loadElfPhdrsEvent) Render() (*data.AnalyseData, bool) {
+	return data.NewAnalyseData(form.NewMarkdown("获取文件程序头")), true
 }
 
 func init() {
 	m := modules.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "bprm_execve",
-		Source:  bprmExecveSrc,
+		Monitor: "load_elf_phdrs",
+		Source:  loadElfPhdrsSrc,
 		Events: []*bcc.Event{
-			bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1),
+			bcc.NewKprobeEvent("kprobe__load_elf_phdrs", "load_elf_phdrs", -1),
 		},
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, bool, error) {
-		return modules.Render(data, &bprmExecveEvent{}, true)
+	m.RegisterOnceTable("load_elf_phdrs_events", func(data []byte) (*data.AnalyseData, bool, error) {
+		return modules.Render(data, &loadElfPhdrsEvent{}, true)
 	})
 	factory.Register(m.Mm())
 }

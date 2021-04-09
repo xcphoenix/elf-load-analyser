@@ -12,27 +12,27 @@ import (
 	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
 )
 
-//go:embed src/bprm_execve.c.k
-var bprmExecveSrc string
+//go:embed src/begin_new_exec.c.k
+var beginNewExecSrc string
 
-type bprmExecveEvent struct {
+type beginNewExecEvent struct {
 	enhance.TimeEventResult
 }
 
-func (a bprmExecveEvent) Render() (*data.AnalyseData, bool) {
-	return data.NewAnalyseData(form.NewMarkdown("开始执行新程序...")), true
+func (a beginNewExecEvent) Render() (*data.AnalyseData, bool) {
+	return data.NewAnalyseData(form.NewMarkdown("开始为新程序做准备")), true
 }
 
 func init() {
 	m := modules.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "bprm_execve",
-		Source:  bprmExecveSrc,
+		Monitor: "begin_new_exec",
+		Source:  beginNewExecSrc,
 		Events: []*bcc.Event{
-			bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1),
+			bcc.NewKprobeEvent("kprobe__begin_new_exec", "begin_new_exec", -1),
 		},
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, bool, error) {
-		return modules.Render(data, &bprmExecveEvent{}, true)
+	m.RegisterOnceTable("begin_new_exec_events", func(data []byte) (*data.AnalyseData, bool, error) {
+		return modules.Render(data, &beginNewExecEvent{}, true)
 	})
 	factory.Register(m.Mm())
 }
