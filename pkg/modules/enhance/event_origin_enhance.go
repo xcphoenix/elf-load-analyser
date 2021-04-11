@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 )
 
 const (

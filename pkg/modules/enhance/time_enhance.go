@@ -1,9 +1,9 @@
 package enhance
 
 import (
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"strconv"
 )
 
@@ -46,7 +46,7 @@ func (t timeEnhancer) AfterHandle(tCtx *modules.TableCtx,
 	}
 
 	if v, ok := aData.ExtraByKey(kernelBootNsKey); ok {
-		ns, e := strconv.ParseUint(v, 10, 64)
+		ns, e := strconv.ParseUint(v.(string), 10, 64)
 		if e != nil {
 			log.Warnf("%s ==> can not convert %q data, %v", timeEnhancerName, kernelBootNsKey, e)
 			return aData, err

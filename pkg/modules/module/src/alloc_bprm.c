@@ -23,7 +23,6 @@ int kretprobe__alloc_bprm(struct pt_regs* ctx) {
     init_tdata(e);
     bpf_probe_read_kernel(&e->filename, sizeof(e->filename),
                           (void*)bprm->filename);
-    bpf_probe_read_kernel(&e->fdpath, sizeof(e->fdpath), (void*)bprm->fdpath);
     bpf_probe_read_kernel(&e->interp, sizeof(e->interp), (void*)bprm->interp);
     bpf_probe_read_kernel(&rlim_val, sizeof(rlim_val),
                           (void*)&bprm->rlim_stack.rlim_cur);

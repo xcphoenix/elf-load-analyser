@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type ItemLevel uint8

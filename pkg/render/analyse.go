@@ -1,7 +1,7 @@
 package render
 
 import (
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type AnalyseRender struct {

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	bpf "github.com/iovisor/gobpf/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 )
 
 type MonitorModel struct {

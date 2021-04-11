@@ -4,12 +4,12 @@ import (
 	"context"
 	"sync"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 var (
@@ -91,7 +91,7 @@ func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
 		}
 		if end {
 			if lastIdx >= 0 {
-				log.Errorf("only one monitor can be set end")
+				log.Errorf("Only one monitor can be set end")
 			}
 			lastMonitor = tmpMonitor
 			lastIdx = idx
@@ -102,7 +102,7 @@ func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
 	}
 
 	if lastIdx < 0 {
-		log.Errorf("no monitor be set end")
+		log.Errorf("No monitor be set end")
 	}
 
 	if cnt == 0 {

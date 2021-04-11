@@ -1,6 +1,6 @@
 package render
 
-import "github.com/phoenixxc/elf-load-analyser/pkg/data"
+import "github.com/xcphoenix/elf-load-analyser/pkg/data"
 
 type Type struct {
 	ID   string

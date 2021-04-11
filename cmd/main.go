@@ -5,17 +5,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
-	"github.com/phoenixxc/elf-load-analyser/pkg/env"
-	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	_ "github.com/phoenixxc/elf-load-analyser/pkg/modules/module"
-	"github.com/phoenixxc/elf-load-analyser/pkg/proc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/render"
-	"github.com/phoenixxc/elf-load-analyser/pkg/web"
+	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/env"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	_ "github.com/xcphoenix/elf-load-analyser/pkg/modules/module"
+	"github.com/xcphoenix/elf-load-analyser/pkg/proc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render"
+	"github.com/xcphoenix/elf-load-analyser/pkg/web"
 )
 
 func main() {

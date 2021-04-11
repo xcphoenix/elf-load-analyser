@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/render/xelf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/xelf"
 )
 
 type ElfRender struct {

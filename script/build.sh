@@ -10,7 +10,7 @@ readonly SRC_DIR="${WORK_DIR}/../pkg/modules/module/src"
 readonly FRONTED_DIR="${WORK_DIR}/../pkg/web/template"
 
 # for banner.txt
-readonly BANNER_LEN_EXPR='github.com/phoenixxc/elf-load-analyser/pkg/env.BannerLen='
+readonly BANNER_LEN_EXPR='github.com/xcphoenix/elf-load-analyser/pkg/env.BannerLen='
 readonly BANNER_PATH="${WORK_DIR}/../pkg/env/banner.txt"
 
 readonly ARG_ERR=100
@@ -94,7 +94,7 @@ fi
 banner_max_len=$(awk '{if (length(max)<length()) max=$0}END{print length(max)+10;}' "${BANNER_PATH}")
 ld_flags="${ld_flags} -X ${BANNER_LEN_EXPR}${banner_max_len}"
 go build -gcflags="${gc_flags}" -ldflags "${ld_flags}" -o target/"${TARGET}" \
-    github.com/phoenixxc/elf-load-analyser/cmd || exit
+    github.com/xcphoenix/elf-load-analyser/cmd || exit
 
 # compressed
 if [ "${compress_level}" -ne 0 ]; then

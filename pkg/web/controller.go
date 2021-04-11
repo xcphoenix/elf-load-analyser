@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
-	"github.com/phoenixxc/elf-load-analyser/pkg/render"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 )
 
 var (
@@ -30,14 +30,18 @@ var XFlagSet = xflag.OpInject(&port, "port", uint(0), "web server port, default 
 
 // VisualAnalyseData 数据展示
 func VisualAnalyseData(p *factory.Pool) {
-	renderedData := render.DoAnalyse(p)
-	go startWebService(renderedData)
+	renderedData, reqHandlers := render.DoAnalyse(p)
+	go startWebService(renderedData, reqHandlers)
 }
 
-func startWebService(d []*data.AnalyseData) {
+func startWebService(d []*data.AnalyseData, reqHandlers []render.ReqHandler) {
 	analyseDataCenter = d
 	http.Handle("/", FrontedService())
 	http.HandleFunc("/api/report", AnalyseReportService)
+
+	for _, handler := range reqHandlers {
+		http.HandleFunc(handler.Pattern, handler.Handler)
+	}
 
 	// 程序的主流程，若定义的端口被占用，使用随机端口
 MAIN:
@@ -46,6 +50,7 @@ MAIN:
 		log.Errorf("Cannot select port to start web server: %v", err)
 	}
 
+	//goland:noinspection ALL
 	log.Infof(log.Em("Try to start wev server on %s"), "http://"+addr)
 	log.Infof(log.Em("you can view analysis report through this link"))
 	err = http.ListenAndServe(addr, nil)

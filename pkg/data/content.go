@@ -25,11 +25,11 @@ func NewSet(contents ...Content) *ContentSet {
 	return (&ContentSet{contents: []Content{}}).Combine(contents...)
 }
 
-func (c *ContentSet) Class() Type {
+func (c ContentSet) Class() Type {
 	return UnitType
 }
 
-func (c *ContentSet) Data() (res interface{}) {
+func (c ContentSet) Data() (res interface{}) {
 	res = "[]"
 	if len(c.contents) == 0 {
 		return
@@ -57,7 +57,11 @@ func (c *ContentSet) Combine(contents ...Content) *ContentSet {
 			continue
 		}
 		if content.Class() == UnitType {
-			c.Combine(content.(*ContentSet).contents...)
+			if con, ok := content.(ContentSet); ok {
+				c.Combine(con.contents...)
+			} else if con, ok := content.(*ContentSet); ok {
+				c.Combine(con.contents...)
+			}
 		} else {
 			c.contents = append(c.contents, content)
 		}
@@ -65,17 +69,21 @@ func (c *ContentSet) Combine(contents ...Content) *ContentSet {
 	return c
 }
 
-type WrapContent struct{ Content }
+type wrapContent struct{ Content }
 
-func NewWrapContent(content Content) *WrapContent {
-	if _, ok := content.(*ContentSet); !ok {
-		content = NewSet(content)
-	}
-	return &WrapContent{Content: content}
+var EmptyContent = wrapContent{}
+
+func newWrapContent(content Content) *wrapContent {
+	return &wrapContent{Content: NewSet(content)}
 }
 
-var EmptyContent = WrapContent{}
+func (w wrapContent) ContentSet() *ContentSet {
+	if s, ok := w.Content.(*ContentSet); ok {
+		return s
+	}
+	return NewSet(w.Content)
+}
 
-func (w WrapContent) MarshalJSON() ([]byte, error) {
+func (w wrapContent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w.Content.Data())
 }

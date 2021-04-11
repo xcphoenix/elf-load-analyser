@@ -3,7 +3,7 @@ package form
 import (
 	"fmt"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type Table struct {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 func AnalyseReportService(w http.ResponseWriter, _ *http.Request) {

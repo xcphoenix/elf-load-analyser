@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 )
 
 type Level int8

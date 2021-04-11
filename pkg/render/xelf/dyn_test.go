@@ -2,7 +2,7 @@ package xelf
 
 import (
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"testing"
 )
 

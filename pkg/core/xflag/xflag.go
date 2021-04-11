@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 )
 
 // xflag error

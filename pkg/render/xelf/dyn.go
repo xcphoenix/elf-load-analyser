@@ -3,7 +3,7 @@ package xelf
 import (
 	"debug/elf"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type DynamicInfo struct {

@@ -1,7 +1,7 @@
 package render
 
 import (
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"testing"
 )
 

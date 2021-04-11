@@ -3,19 +3,20 @@ package module
 import (
 	_ "embed" // for embed bcc source
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 	"strconv"
 	"strings"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/helper"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
-	"github.com/phoenixxc/elf-load-analyser/pkg/factory"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/modules"
-	"github.com/phoenixxc/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
 )
 
 //go:embed src/elf_map.c.k
@@ -53,7 +54,12 @@ func (e elfMapEventType) Render() (*data.AnalyseData, bool) {
 			fmt.Sprintf("VMA类型: 0x%X", e.Type),
 		),
 	)
-	return data.NewAnalyseData(result), true
+	event := virtualm.MapVmaEvent{
+		NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, "XXX"),
+	}
+	aData := data.NewAnalyseData(result)
+	aData.PutExtra(virtualm.VmaFlag, event)
+	return aData, true
 }
 
 type elfMapPropEventType struct {
@@ -100,8 +106,8 @@ func (e elfMapPropEventType) Render() (*data.AnalyseData, bool) {
 			fmt.Sprintf("加载地址：0X%X", e.LoadAddr),
 			fmt.Sprintf("加载偏移：0X%X", e.LoadBias),
 		),
-		// TODO 修正地址
-		//form.NewList(
+
+		// form.NewList(
 		//	fmt.Sprintf("数据段: [0x%X -> 0x%X]", e.StartCode, e.EndCode),
 		//	fmt.Sprintf("代码段: [0x%X -> 0x%X]", e.StartData, e.EndData),
 		//	fmt.Sprintf("ElfBss: 0x%X\tElfBrk: 0x%X", e.ElfBss, e.ElfBrk),

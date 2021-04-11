@@ -10,11 +10,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/xflag"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"golang.org/x/sys/unix"
 )
 

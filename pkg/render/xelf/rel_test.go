@@ -3,7 +3,7 @@ package xelf
 import (
 	"debug/elf"
 	"fmt"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"

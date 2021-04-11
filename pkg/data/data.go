@@ -13,7 +13,7 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(stamp), nil
 }
 
-// Result Status
+// Status Result status
 type Status int8
 
 const (
@@ -27,15 +27,15 @@ var status2Desc = map[Status]string{
 }
 
 type AnalyseData struct {
-	XTime    JSONTime          `json:"time"`
-	DataList []*AnalyseData    `json:"dataList"`
-	ID       string            `json:"id"`
-	Name     string            `json:"name"`
-	Desc     string            `json:"desc"`
-	Data     *WrapContent      `json:"data"`
-	Extra    map[string]string `json:"extra"`
-	Status   Status            `json:"status"`
-	XType    Type              `json:"type"`
+	XTime    JSONTime               `json:"time"`
+	DataList []*AnalyseData         `json:"dataList"`
+	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
+	Desc     string                 `json:"desc"`
+	Data     *wrapContent           `json:"data"`
+	Extra    map[string]interface{} `json:"extra"`
+	Status   Status                 `json:"status"`
+	XType    Type                   `json:"type"`
 }
 
 func (a AnalyseData) String() string {
@@ -52,10 +52,10 @@ func NewAnalyseData(content Content) *AnalyseData {
 		Name:   "",
 		Status: Success,
 		XType:  content.Class(),
-		Data:   NewWrapContent(content),
+		Data:   newWrapContent(content),
 		Desc:   statusDesc(Success),
 		XTime:  JSONTime(time.Now()),
-		Extra:  map[string]string{},
+		Extra:  map[string]interface{}{},
 	}
 }
 
@@ -67,7 +67,7 @@ func NewListAnalyseData(id string, name string, dataList []*AnalyseData) *Analys
 		DataList: dataList,
 		Desc:     statusDesc(Success),
 		XTime:    JSONTime(time.Now()),
-		Extra:    map[string]string{},
+		Extra:    map[string]interface{}{},
 	}
 }
 
@@ -78,7 +78,12 @@ func NewErrAnalyseData(name string, s Status, desc string) *AnalyseData {
 	if len(desc) == 0 {
 		desc = statusDesc(s)
 	}
-	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Name: name, Extra: map[string]string{}}
+	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Name: name, Extra: map[string]interface{}{}}
+}
+
+func (a *AnalyseData) Change(changer func(set ContentSet) Content) {
+	oldSet := a.Data.ContentSet()
+	a.Data = newWrapContent(changer(*oldSet))
 }
 
 func (a *AnalyseData) WithName(name string) *AnalyseData {
@@ -95,11 +100,11 @@ func (a *AnalyseData) RmExtra(k string) {
 	delete(a.Extra, k)
 }
 
-func (a *AnalyseData) PutExtra(k string, v string) {
+func (a *AnalyseData) PutExtra(k string, v interface{}) {
 	a.Extra[k] = v
 }
 
-func (a *AnalyseData) ExtraByKey(k string) (string, bool) {
+func (a *AnalyseData) ExtraByKey(k string) (interface{}, bool) {
 	v, ok := a.Extra[k]
 	return v, ok
 }

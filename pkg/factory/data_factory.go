@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/core/state"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type Pool struct {

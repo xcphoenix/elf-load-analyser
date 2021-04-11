@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	bpf "github.com/iovisor/gobpf/bcc"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/log"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 var (

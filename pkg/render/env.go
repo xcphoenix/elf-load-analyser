@@ -4,9 +4,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/phoenixxc/elf-load-analyser/pkg/data"
-	"github.com/phoenixxc/elf-load-analyser/pkg/data/form"
-	"github.com/phoenixxc/elf-load-analyser/pkg/env"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/env"
 )
 
 type EnvRender struct{}
