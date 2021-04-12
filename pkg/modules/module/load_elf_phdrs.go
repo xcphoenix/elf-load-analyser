@@ -2,9 +2,6 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-
-	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -19,8 +16,8 @@ type loadElfPhdrsEvent struct {
 	enhance.TimeEventResult
 }
 
-func (a loadElfPhdrsEvent) Render() (*data.AnalyseData, bool) {
-	return data.NewAnalyseData(form.NewMarkdown("获取文件程序头")), true
+func (a loadElfPhdrsEvent) Render() *data.AnalyseData {
+	return data.NewAnalyseData(form.NewMarkdown("获取文件程序头"))
 }
 
 func init() {
@@ -31,8 +28,9 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__load_elf_phdrs", "load_elf_phdrs", -1),
 		},
 	})
-	m.RegisterOnceTable("load_elf_phdrs_events", func(data []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterOnceTable("load_elf_phdrs_events", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &loadElfPhdrsEvent{}, true)
 	})
-	factory.Register(m.Mm())
+	// FIXME module 无法终止
+	//factory.Register(m.Mm())
 }

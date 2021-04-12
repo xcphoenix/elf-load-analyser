@@ -18,8 +18,8 @@ type sysExecveEvent struct {
 	enhance.TimeEventResult
 }
 
-func (e sysExecveEvent) Render() (*data.AnalyseData, bool) {
-	return data.NewAnalyseData(form.NewMarkdown("start call")), true
+func (e sysExecveEvent) Render() *data.AnalyseData {
+	return data.NewAnalyseData(form.NewMarkdown("start call"))
 }
 
 type sysExecveRetEvent struct {
@@ -27,11 +27,11 @@ type sysExecveRetEvent struct {
 	Ret int8
 }
 
-func (s sysExecveRetEvent) Render() (*data.AnalyseData, bool) {
+func (s sysExecveRetEvent) Render() *data.AnalyseData {
 	if s.Ret != 0 {
-		return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret)), true
+		return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
 	}
-	return data.NewAnalyseData(form.NewMarkdown("execve success")), true
+	return data.NewAnalyseData(form.NewMarkdown("execve success"))
 }
 
 //go:embed src/execve.c.k
@@ -49,10 +49,10 @@ func init() {
 		},
 		IsEnd: true,
 	})
-	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, error) {
 		return modules.Render(d, &sysExecveEvent{}, true)
 	})
-	m.RegisterOnceTable("ret_event", func(d []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterOnceTable("ret_event", func(d []byte) (*data.AnalyseData, error) {
 		return modules.Render(d, &sysExecveRetEvent{}, true)
 	})
 	m.SetMark(entry, enhance.StartMark)

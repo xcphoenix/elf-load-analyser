@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -20,7 +21,7 @@ func RegisteredEnhancer(name string, e Enhancer) {
 	registeredEnhancer[name] = e
 }
 
-type TableHandler func(data []byte) (*data.AnalyseData, bool, error)
+type TableHandler func(data []byte) (*data.AnalyseData, error)
 
 // TableCtx table context
 type TableCtx struct {
@@ -38,7 +39,7 @@ func (t *TableCtx) IsMark(mk string) bool {
 	return ok
 }
 
-// Enhancer enhance on PerfResolveMm.Resolve
+// Enhancer 增强器，只能做一些简单的流程协调操作
 type Enhancer interface {
 	PreHandle(tCtx *TableCtx)
 	AfterHandle(tCtx *TableCtx, aData *data.AnalyseData, err error) (*data.AnalyseData, error)
@@ -105,11 +106,15 @@ func (p *PerfResolveMm) IsEnd() bool {
 	return p.MonitorModule.IsEnd
 }
 
+func readyNotify(ch chan<- *data.AnalyseData) {
+	ch <- data.NewErrAnalyseData("", data.Invalid, "")
+}
+
 //nolint:funlen
-func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{}) {
+func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
 	if len(p.tableIds) == 0 {
 		log.Warnf("Monitor %q without event", p.Monitor)
-		ready <- struct{}{}
+		readyNotify(ch)
 		return
 	}
 	showRegisteredEnhancer()
@@ -120,41 +125,44 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 	chCnt := len(p.table2Ctx)
 	cnt := chCnt + 2
 	remaining := cnt
-	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ready, stop)
+	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ch, ctx.Done())
+
+	lastRemain := 0
+	if p.IsEnd() {
+		lastRemain++
+	}
+	wg := &sync.WaitGroup{}
 
 	go func() {
-		defer func() { close(ok) }()
-		lastRemain := 0
-		if p.IsEnd() {
-			lastRemain++
-		}
+		defer func() {
+			wg.Wait()
+			close(ok)
+		}()
+
 		for remaining > lastRemain {
+			// 返回选择的索引、如果是 recv，返回 value 是否有效，ok 返回 false 表示 channel 被关闭
 			chosen, value, ok := reflect.Select(cases)
-			if !value.IsValid() || !ok {
-				cases[chosen].Chan = reflect.ValueOf(nil)
-				remaining--
-				if chosen == chCnt+1 {
-					log.Debugf("Monitor %q exit", p.Monitor)
-					return
+			if value.IsValid() && ok {
+				tName := tableNames[chosen]
+				tableCtx := p.table2Ctx[tName]
+
+				d := value.Bytes()
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					dataProcessing(d, tableCtx, ch)
+				}()
+				if tableCtx.loop {
+					continue
 				}
-				continue
-			}
-
-			tName := tableNames[chosen]
-			ctx := p.table2Ctx[tName]
-
-			d := value.Bytes()
-			if goOn := dataProcessing(d, ctx, ch); !goOn {
-				log.Debugf("Monitor %q quit", p.Monitor)
-				return
-			}
-			if ctx.loop {
-				continue
+			} else if chosen == chCnt+1 {
+				// 接收到终止信号
+				log.Debugf("Monitor %q exit", p.Monitor)
+				break
 			}
 			cases[chosen].Chan = reflect.ValueOf(nil)
 			remaining--
 		}
-		log.Debugf("Monitor %q quit", p.Monitor)
 	}()
 
 	for _, perfMap := range perfMaps {
@@ -165,7 +173,7 @@ func (p *PerfResolveMm) Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, read
 	for _, perfMap := range perfMaps {
 		perfMap.Stop()
 	}
-	log.Infof("Monitor %s stop...", p.Monitor)
+	log.Infof("Monitor %s stop", p.Monitor)
 }
 
 func showRegisteredEnhancer() {
@@ -185,33 +193,32 @@ func showRegisteredEnhancer() {
 	}
 }
 
-func dataProcessing(d []byte, ctx *TableCtx, ch chan<- *data.AnalyseData) bool {
+func dataProcessing(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
 	for name, handler := range registeredEnhancer {
-		log.Debugf("%s pre handle for %q", name, ctx.Name)
-		handler.PreHandle(ctx)
+		log.Debugf("%s pre handle for %q", name, tableCtx.Name)
+		handler.PreHandle(tableCtx)
 	}
 
-	log.Infof("Resolve %q...", ctx.Name)
-	analyseData, goOn, err := ctx.handler(d)
-	log.Debugf("Receive data from %q, %v", ctx.Name, analyseData)
+	log.Infof("Resolve %q...", tableCtx.Name)
+	analyseData, err := tableCtx.handler(d)
+	log.Debugf("Receive data from %q, %v", tableCtx.Name, analyseData)
 
 	for name, handler := range registeredEnhancer {
-		log.Debugf("%s after handle for %q", name, ctx.Name)
-		analyseData, err = handler.AfterHandle(ctx, analyseData, err)
+		log.Debugf("%s after handle for %q", name, tableCtx.Name)
+		analyseData, err = handler.AfterHandle(tableCtx, analyseData, err)
 	}
 
 	if err != nil {
-		log.Warnf("Event %q resolve error: %v", ctx.Name, err)
+		log.Warnf("Event %q resolve error: %v", tableCtx.Name, err)
 	} else {
 		if len(analyseData.Name) == 0 {
-			analyseData.Name = ctx.Name
+			analyseData.Name = tableCtx.Name
 		}
 		ch <- analyseData
 	}
-	return goOn
 }
 
-func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- struct{},
+func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
 	stop <-chan struct{}) ([]reflect.SelectCase, []string) {
 	chCnt := len(table2Ctx)
 	cases := make([]reflect.SelectCase, cnt)
@@ -228,7 +235,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- struc
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(struct{}{}),
+		Send: reflect.ValueOf(data.NewErrAnalyseData("", data.Invalid, "")),
 	}
 	if idx := chCnt + 1; idx < cnt {
 		cases[idx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}

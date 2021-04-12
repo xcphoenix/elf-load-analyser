@@ -4,6 +4,7 @@ import (
 	_ "embed" // for embed bcc source
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
+	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xfs"
 	"strconv"
 	"strings"
 
@@ -35,31 +36,34 @@ type elfMapEventType struct {
 	Type        int64
 
 	TotalSize uint64
+	INode     uint64
 }
 
-func (e elfMapEventType) Render() (*data.AnalyseData, bool) {
-	result := data.NewSet().Combine(
-		form.NewMarkdown("文件映射操作\n\n"),
-		form.NewList(
-			fmt.Sprintf("偏移后的地址: 0X%X", e.ShiftedAddr),
-			fmt.Sprintf("ELF文件中的虚拟地址: 0X%X", e.Vaddr),
-			fmt.Sprintf("实际的虚拟地址: 0X%X", e.ActualAddr),
-		),
-		form.NewList(
-			fmt.Sprintf("当前段大小：0X%X", e.Size),
-			fmt.Sprintf("当前段偏移：0X%X", e.Off),
-		),
-		form.NewList(
-			fmt.Sprintf("VMA权限: 0X%X", e.Prot),
-			fmt.Sprintf("VMA类型: 0x%X", e.Type),
-		),
-	)
-	event := virtualm.MapVmaEvent{
-		NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, "XXX"),
-	}
-	aData := data.NewAnalyseData(result)
-	aData.PutExtra(virtualm.VmaFlag, event)
-	return aData, true
+func (e elfMapEventType) Render() *data.AnalyseData {
+	return data.NewLazyAnalyseData(func(aData *data.AnalyseData) data.Content {
+		result := data.NewSet().Combine(
+			form.NewMarkdown("文件映射操作\n\n"),
+			form.NewList(
+				fmt.Sprintf("偏移后的地址: 0X%X", e.ShiftedAddr),
+				fmt.Sprintf("ELF文件中的虚拟地址: 0X%X", e.Vaddr),
+				fmt.Sprintf("实际的虚拟地址: 0X%X", e.ActualAddr),
+			),
+			form.NewList(
+				fmt.Sprintf("当前段大小：0X%X", e.Size),
+				fmt.Sprintf("当前段偏移：0X%X", e.Off),
+			),
+			form.NewList(
+				fmt.Sprintf("VMA权限: 0X%X", e.Prot),
+				fmt.Sprintf("VMA类型: 0x%X", e.Type),
+			),
+		)
+		path, _ := xfs.FindPath(e.INode)
+		event := virtualm.MapVmaEvent{
+			NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, path),
+		}
+		aData.PutExtra(virtualm.VmaFlag, event)
+		return result
+	})
 }
 
 type elfMapPropEventType struct {
@@ -84,7 +88,7 @@ type elfMapPropEventType struct {
 	IsRnd      bool
 }
 
-func (e elfMapPropEventType) Render() (*data.AnalyseData, bool) {
+func (e elfMapPropEventType) Render() *data.AnalyseData {
 	e.StartCode += e.LoadAddr
 	e.EndCode += e.LoadAddr
 	e.StartData += e.LoadAddr
@@ -106,14 +110,8 @@ func (e elfMapPropEventType) Render() (*data.AnalyseData, bool) {
 			fmt.Sprintf("加载地址：0X%X", e.LoadAddr),
 			fmt.Sprintf("加载偏移：0X%X", e.LoadBias),
 		),
-
-		// form.NewList(
-		//	fmt.Sprintf("数据段: [0x%X -> 0x%X]", e.StartCode, e.EndCode),
-		//	fmt.Sprintf("代码段: [0x%X -> 0x%X]", e.StartData, e.EndData),
-		//	fmt.Sprintf("ElfBss: 0x%X\tElfBrk: 0x%X", e.ElfBss, e.ElfBrk),
-		//),
 	)
-	return data.NewAnalyseData(result), true
+	return data.NewAnalyseData(result)
 }
 
 func init() {
@@ -133,10 +131,10 @@ func init() {
 			return false
 		},
 	})
-	m.RegisterTable("elf_map_events", true, func(data []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterTable("elf_map_events", true, func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &elfMapEventType{}, true)
 	})
-	m.RegisterOnceTable("elf_map_prop_events", func(data []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterOnceTable("elf_map_prop_events", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &elfMapPropEventType{}, true)
 	})
 	factory.Register(m.Mm())

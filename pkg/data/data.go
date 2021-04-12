@@ -19,6 +19,7 @@ type Status int8
 const (
 	Success  = Status(iota) // success
 	RunError                // exec runtime error, such as kernel function return failed
+	Invalid
 )
 
 var status2Desc = map[Status]string{
@@ -27,15 +28,16 @@ var status2Desc = map[Status]string{
 }
 
 type AnalyseData struct {
-	XTime    JSONTime               `json:"time"`
-	DataList []*AnalyseData         `json:"dataList"`
-	ID       string                 `json:"id"`
-	Name     string                 `json:"name"`
-	Desc     string                 `json:"desc"`
-	Data     *wrapContent           `json:"data"`
-	Extra    map[string]interface{} `json:"extra"`
-	Status   Status                 `json:"status"`
-	XType    Type                   `json:"type"`
+	XTime    JSONTime                         `json:"time"`
+	DataList []*AnalyseData                   `json:"dataList"`
+	ID       string                           `json:"id"`
+	Name     string                           `json:"name"`
+	Desc     string                           `json:"desc"`
+	Data     *wrapContent                     `json:"data"`
+	Extra    map[string]interface{}           `json:"extra"`
+	Status   Status                           `json:"status"`
+	XType    Type                             `json:"type"`
+	lazyFunc func(aData *AnalyseData) Content // 延迟处理函数, 要求返回 Content，避免忘记返回实际的数据内容
 }
 
 func (a AnalyseData) String() string {
@@ -49,13 +51,22 @@ func (a AnalyseData) String() string {
 // builder: cannot be null
 func NewAnalyseData(content Content) *AnalyseData {
 	return &AnalyseData{
-		Name:   "",
 		Status: Success,
 		XType:  content.Class(),
 		Data:   newWrapContent(content),
 		Desc:   statusDesc(Success),
 		XTime:  JSONTime(time.Now()),
 		Extra:  map[string]interface{}{},
+	}
+}
+
+func NewLazyAnalyseData(lazyFunc func(aData *AnalyseData) Content) *AnalyseData {
+	return &AnalyseData{
+		Status:   Success,
+		lazyFunc: lazyFunc,
+		Desc:     statusDesc(Success),
+		XTime:    JSONTime(time.Now()),
+		Extra:    map[string]interface{}{},
 	}
 }
 
@@ -79,6 +90,19 @@ func NewErrAnalyseData(name string, s Status, desc string) *AnalyseData {
 		desc = statusDesc(s)
 	}
 	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Name: name, Extra: map[string]interface{}{}}
+}
+
+func (a *AnalyseData) IsLazy() bool {
+	return a.lazyFunc != nil
+}
+
+func (a *AnalyseData) DoLazyFunc() {
+	if a.lazyFunc == nil {
+		return
+	}
+	c := a.lazyFunc(a)
+	a.XType = c.Class()
+	a.Data = newWrapContent(c)
 }
 
 func (a *AnalyseData) Change(changer func(set ContentSet) Content) {

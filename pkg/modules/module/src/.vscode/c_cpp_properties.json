@@ -2,14 +2,13 @@
   // https://code.visualstudio.com/docs/cpp/c-cpp-properties-schema-reference
   "env": {
     // use cmd `uname -r`
-    "kernel_module": "5.4.108-1-MANJARO"
+    "kernel_module": "5.10.26-1-MANJARO"
   },
   "configurations": [
     {
       "name": "Linux",
       "includePath": [
         "${workspaceFolder}/**",
-        // "/usr/include/",
         // extra header locations
         "/home/xuanc/文档/CodePratice/ELF/bcc/src/cc/",
         "/usr/lib/modules/${env:kernel_module}/build/include/",

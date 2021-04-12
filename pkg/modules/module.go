@@ -2,6 +2,7 @@ package modules
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"reflect"
@@ -25,12 +26,13 @@ const (
 
 // EventResult 事件结果接口，实现中的类型大小在编译时必须是已知的
 type EventResult interface {
-	Render() (*data.AnalyseData, bool)
+	Render() *data.AnalyseData
 }
 
 type ModuleResolver interface {
-	// Resolve 解析、发送处理结果
-	Resolve(m *bpf.Module, ch chan<- *data.AnalyseData, ready chan<- struct{}, stop <-chan struct{})
+	// Resolve 解析、发送处理结果, m: bpf模块, ch: 发送数据的 channel，当模块准备完毕时，发送空数据,
+	// stop: 当 stop 被关闭，意味着模块流程将被终止
+	Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData)
 }
 
 // MonitorModule 模块抽象接口
@@ -70,17 +72,17 @@ func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool
 	return m, mm.IsEnd, false
 }
 
-func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, bool, error) {
+func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, error) {
 	err := binary.Read(bytes.NewBuffer(d), bpf.GetHostByteOrder(), event)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to decode received data to %q, %w",
+		return nil, fmt.Errorf("failed to decode received data to %q, %w",
 			reflect.TypeOf(event).Name(), err)
 	}
-	aData, goOn := event.Render()
+	aData := event.Render()
 	if enhance {
 		enhanceStructField(event, aData)
 	}
-	return aData, goOn, nil
+	return aData, nil
 }
 
 func enhanceStructField(ptr interface{}, d *data.AnalyseData) {

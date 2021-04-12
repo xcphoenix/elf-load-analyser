@@ -2,9 +2,8 @@ package factory
 
 import (
 	"context"
-	"sync"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
@@ -30,56 +29,71 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	registerMutex.Lock()
 	defer registerMutex.Unlock()
 
+	// 生命周期控制
 	rootCtx := state.CreateRootContent()
 	rootMonitorCtx, rootCancelFunc := context.WithCancel(rootCtx)
+	waitMonitorCtx, waitCancelFunc := context.WithCancel(rootMonitorCtx)
 
-	ready := make(chan struct{})
+	monitors, lastMonitor, lastIdx, cnt := initMm(param)
+
 	p = NewPool()
 	ch := p.Chan()
-	p.Init(rootMonitorCtx.Done())
+	// 当作为根的模块处理结束时，中止收集数据
+	p.Init(rootMonitorCtx.Done(), cnt)
 
-	monitors, lastMonitor, lastIdx := initMm(param)
-	cnt := 1
+	wg := &sync.WaitGroup{}
+	wg.Add(cnt - 1)
+	log.Infof("wait %d go", cnt-1)
 
 	log.Info("Start load monitor....")
 	for idx, monitor := range monitors {
 		if monitor == nil {
 			continue
 		}
-		cnt++
 		monitor := monitor
 		monitor.PreProcessing(param)
 		m := monitor.DoAction()
 		idx := idx
 		go func() {
-			defer mutex.Unlock()
-			factory[idx].Resolve(m, ch, ready, rootMonitorCtx.Done())
+			defer func() {
+				mutex.Unlock()
+				wg.Done()
+				log.Infof("monitor %q done!", monitor.Name)
+			}()
+			factory[idx].Resolve(waitMonitorCtx, m, ch)
 			mutex.Lock()
 			m.Close()
+			log.Infof("monitor %q resolve ok!", monitor.Name)
 		}()
 	}
 
+	// 根模块处理
 	lastMonitor.PreProcessing(param)
 	m := lastMonitor.DoAction()
 	go func() {
 		defer func() {
-			rootCancelFunc()
 			mutex.Unlock()
+			// 根模块处理完毕，关闭以通知其他模块停止工作，
+			waitCancelFunc()
+			// 等待其他模块处理
+			log.Info("Wait other done!")
+			wg.Wait()
+			// 处理结束，关闭
+			rootCancelFunc()
 		}()
-		factory[lastIdx].Resolve(m, ch, ready, rootCtx.Done())
+		factory[lastIdx].Resolve(rootCtx, m, ch)
 		mutex.Lock()
 		m.Close()
 	}()
 
-	for ; cnt > 0; cnt-- {
-		<-ready
-	}
+	// 等待所有模块加载完毕
+	p.WaitReady()
 	log.Info("Load monitors ok")
 
 	return
 }
 
-func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
+func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int, int) {
 	var lastMonitor *bcc.Monitor
 	monitors := make([]*bcc.Monitor, len(factory))
 
@@ -95,6 +109,7 @@ func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
 			}
 			lastMonitor = tmpMonitor
 			lastIdx = idx
+			cnt++
 			continue
 		}
 		monitors[idx] = tmpMonitor
@@ -104,10 +119,8 @@ func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int) {
 	if lastIdx < 0 {
 		log.Errorf("No monitor be set end")
 	}
-
 	if cnt == 0 {
 		log.Errorf("No invalid monitors")
 	}
-
-	return monitors, lastMonitor, lastIdx
+	return monitors, lastMonitor, lastIdx, cnt
 }

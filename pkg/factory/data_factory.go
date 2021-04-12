@@ -15,6 +15,7 @@ type Pool struct {
 	ch    chan *data.AnalyseData
 	exit  chan struct{}
 	data  []*data.AnalyseData
+	ready chan struct{}
 }
 
 func (p *Pool) Len() int {
@@ -31,11 +32,22 @@ func (p *Pool) Swap(i, j int) {
 }
 
 func NewPool() *Pool {
-	return &Pool{ch: make(chan *data.AnalyseData), exit: make(chan struct{}), data: make([]*data.AnalyseData, 0), order: false}
+	return &Pool{
+		ch:    make(chan *data.AnalyseData),
+		exit:  make(chan struct{}),
+		data:  make([]*data.AnalyseData, 0),
+		order: false,
+		ready: make(chan struct{}),
+	}
 }
 
 func (p *Pool) Chan() chan<- *data.AnalyseData {
 	return p.ch
+}
+
+// WaitReady 阻塞等待模块加载完毕
+func (p *Pool) WaitReady() {
+	<-p.ready
 }
 
 func (p *Pool) Data() []*data.AnalyseData {
@@ -52,26 +64,28 @@ func (p *Pool) Data() []*data.AnalyseData {
 	return p.data
 }
 
-func (p *Pool) close() {
-	close(p.ch)
-	close(p.exit)
-}
-
-func (p *Pool) Init(done <-chan struct{}) {
+// Init 初始化数据池，当 done 被关闭时，停止接收数据，waitCnt 表示数据接收前要等待的次数
+func (p *Pool) Init(done <-chan struct{}, waitCnt int) {
 	go func() {
 	loop:
 		for {
 			select {
-			case <-p.exit:
-				break loop
 			case d, ok := <-p.ch:
 				if !ok {
 					break loop
 				}
+				// 如果还未等待完成，丢弃数据，计数器减一
+				if waitCnt > 0 {
+					waitCnt--
+					if waitCnt == 0 {
+						close(p.ready)
+					}
+					continue
+				}
 				p.data = append(p.data, d)
 			case <-done:
-				time.Sleep(10 * time.Millisecond)
-				p.close()
+				close(p.ch)
+				close(p.exit)
 				break loop
 			}
 		}

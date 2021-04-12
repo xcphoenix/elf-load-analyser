@@ -18,8 +18,8 @@ type beginNewExecEvent struct {
 	enhance.TimeEventResult
 }
 
-func (a beginNewExecEvent) Render() (*data.AnalyseData, bool) {
-	return data.NewAnalyseData(form.NewMarkdown("开始为新程序做准备")), true
+func (a beginNewExecEvent) Render() *data.AnalyseData {
+	return data.NewAnalyseData(form.NewMarkdown("开始为新程序做准备"))
 }
 
 func init() {
@@ -30,7 +30,7 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__begin_new_exec", "begin_new_exec", -1),
 		},
 	})
-	m.RegisterOnceTable("begin_new_exec_events", func(data []byte) (*data.AnalyseData, bool, error) {
+	m.RegisterOnceTable("begin_new_exec_events", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &beginNewExecEvent{}, true)
 	})
 	factory.Register(m.Mm())

@@ -60,6 +60,10 @@ func PreAnalyse(param *bcc.PreParam) {
 func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
 	dataList := p.Data()
 
+	for _, analyseData := range dataList {
+		analyseData.DoLazyFunc()
+	}
+
 	var reqHandlers []ReqHandler
 	for _, handler := range dataHandlerList {
 		tmpHandlers := handler.Handle(dataList)

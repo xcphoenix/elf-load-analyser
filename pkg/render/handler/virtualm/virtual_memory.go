@@ -47,6 +47,11 @@ func (v Vma) ProtDesc() string {
 	return ""
 }
 
+func (v Vma) Show() string {
+	// TODO 按照 /proc/<pid>/maps 的方式输出
+	return ""
+}
+
 // VmaData VMA数据，用于渲染图表
 type VmaData []interface{}
 
@@ -80,6 +85,11 @@ func newVirtualMemory() *virtualMemory {
 	return &virtualMemory{word: archWord(), vmaList: make([]Vma, 0)}
 }
 
+func (vm virtualMemory) ShowVm() string {
+	// TODO 按照 /proc/<pid>/maps 的方式输出
+	return ""
+}
+
 func (vm *virtualMemory) ApplyEvent(event VmaEvent) *virtualMemory {
 	event.doEvent(vm)
 	return vm
@@ -96,7 +106,7 @@ func (vm *virtualMemory) fillSlot() {
 	}
 	sort.Sort(vm)
 	var fillVma []Vma
-	lastStart := vm.vmaList[0].End
+	lastStart := vm.vmaList[0].Start
 	for _, vma := range vm.vmaList[1:] {
 		if lastStart > vma.End {
 			fillVma = append(fillVma, Vma{Class: fillClass, Start: vma.End, End: lastStart})
@@ -153,7 +163,7 @@ func (vm *virtualMemory) ChartsRender(host string) *charts.Bar {
 		},
 	)
 
-	vmBar.AddXAxis([]string{"VMA"})
+	vmBar.AddXAxis([]string{" "})
 	for i := range vm.vmaList {
 		vma := vm.vmaList[i]
 

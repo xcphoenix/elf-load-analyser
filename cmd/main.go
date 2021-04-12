@@ -1,6 +1,7 @@
 package main
 
 import (
+	proc2 "github.com/xcphoenix/elf-load-analyser/pkg/xsys/proc"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,29 +14,28 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	_ "github.com/xcphoenix/elf-load-analyser/pkg/modules/module"
-	"github.com/xcphoenix/elf-load-analyser/pkg/proc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 	"github.com/xcphoenix/elf-load-analyser/pkg/web"
 )
 
 func main() {
-	if proc.IsMainControl() {
-		xflag.AddCmdFlags(proc.XFlagSet, log.XFlagSet, web.XFlagSet)
+	if proc2.IsMainControl() {
+		xflag.AddCmdFlags(proc2.XFlagSet, log.XFlagSet, web.XFlagSet)
 		xflag.ParseCmdFlags()
 	}
 
-	proc.ControlDetach()
+	proc2.ControlDetach()
 	env.CheckEnv()
 
-	param := bcc.BuildCtx(proc.GetProgPath())
+	param := bcc.BuildCtx(proc2.GetProgPath())
 	render.PreAnalyse(&param)
 
-	param.Pid = proc.CreateProcess()
+	param.Pid = proc2.CreateProcess()
 	state.PushState(state.ProcessCreated)
 
 	pool := factory.LoadMonitors(param)
 	state.PushState(state.MonitorLoaded)
-	proc.WakeUpChild(param.Pid)
+	proc2.WakeUpChild(param.Pid)
 
 	web.VisualAnalyseData(pool)
 
