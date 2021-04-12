@@ -57,9 +57,8 @@ func (e elfMapEventType) Render() *data.AnalyseData {
 				fmt.Sprintf("VMA类型: 0x%X", e.Type),
 			),
 		)
-		path, _ := xfs.FindPath(e.INode)
 		event := virtualm.MapVmaEvent{
-			NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, path),
+			NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, xfs.INodePath(e.INode)),
 		}
 		aData.PutExtra(virtualm.VmaFlag, event)
 		return result

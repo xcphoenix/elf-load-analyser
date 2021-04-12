@@ -36,7 +36,7 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			if !ok {
 				continue
 			}
-			vm.ApplyEvent(event)
+			diff := vm.ApplyEvent(event)
 			url := apiPrefix + strconv.Itoa(cnt)
 			bar := vm.ChartsRender("/assets/")
 			vmHandlers = append(vmHandlers, render.BuildReqHandler(url, func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,10 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			}))
 			cnt++
 			analyseData.Change(func(set data.ContentSet) data.Content {
-				return data.NewSet(form.NewMarkdown("[内存模型]("+url+")"), set)
+				md := form.NewMarkdown("[内存模型](" + url + ")").
+					Append(form.NewMarkdown("VMA 变化: ")).
+					Append(form.NewMarkdown("```shell\n" + diff + "```"))
+				return data.NewSet(md, set)
 			})
 		}
 	}

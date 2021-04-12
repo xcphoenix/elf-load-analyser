@@ -1,7 +1,9 @@
 package virtualm
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/pmezard/go-difflib/difflib"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"hash/fnv"
 	"math"
@@ -16,6 +18,13 @@ const (
 	StackMap = "[stack]"
 	VvarMap  = "[vvar]"
 	Vsyscall = "[vsyscall]"
+)
+
+const (
+	xvmRead  = 0x1
+	xvmWrite = 0x2
+	xvmExec  = 0x4
+	xvmShare = 0x1
 )
 
 type vmaClass uint8
@@ -34,22 +43,48 @@ type Vma struct {
 	Flag       uint     `json:"flag"`
 	Offset     uint64   `json:"offset"`
 	MappedFile string   `json:"file"`
+	Attr       string   `json:"attr"`
 }
 
 // BuildVma 创建 VMA, mappedFile 可选值：文件名称、EmptyMap、HeapMap、StackMap、VvarMap、Vsyscall
 func BuildVma(start uint64, end uint64, prot uint, flag uint, offset uint64, mappedFile string) Vma {
-	return Vma{Class: mapClass, Start: start, End: end, Prot: prot, Flag: flag, Offset: offset, MappedFile: mappedFile}
+	v := Vma{
+		Class: mapClass, Start: start, End: end,
+		Prot: prot, Flag: flag, Offset: offset,
+		MappedFile: mappedFile,
+	}
+	v.Attr = v.ProtDesc()
+	return v
 }
 
 // ProtDesc 获取权限
 func (v Vma) ProtDesc() string {
-	// TODO
-	return ""
+	var buf bytes.Buffer
+	if v.Prot&xvmRead != 0 {
+		buf.WriteRune('r')
+	} else {
+		buf.WriteRune('-')
+	}
+	if v.Prot&xvmWrite != 0 {
+		buf.WriteRune('w')
+	} else {
+		buf.WriteRune('-')
+	}
+	if v.Prot&xvmExec != 0 {
+		buf.WriteRune('x')
+	} else {
+		buf.WriteRune('-')
+	}
+	if v.Flag&xvmShare != 0 {
+		buf.WriteRune('s')
+	} else {
+		buf.WriteRune('p')
+	}
+	return buf.String()
 }
 
 func (v Vma) Show() string {
-	// TODO 按照 /proc/<pid>/maps 的方式输出
-	return ""
+	return fmt.Sprintf("%x-%x %s %08x %s\n", v.Start, v.End, v.ProtDesc(), v.Offset, v.MappedFile)
 }
 
 // VmaData VMA数据，用于渲染图表
@@ -85,14 +120,28 @@ func newVirtualMemory() *virtualMemory {
 	return &virtualMemory{word: archWord(), vmaList: make([]Vma, 0)}
 }
 
-func (vm virtualMemory) ShowVm() string {
-	// TODO 按照 /proc/<pid>/maps 的方式输出
-	return ""
+func (vm virtualMemory) ShowVM() string {
+	var buf bytes.Buffer
+	for _, vma := range vm.vmaList {
+		if vma.Class == fillClass {
+			continue
+		}
+		buf.WriteString(vma.Show())
+	}
+	return buf.String()
 }
 
-func (vm *virtualMemory) ApplyEvent(event VmaEvent) *virtualMemory {
+func (vm *virtualMemory) ApplyEvent(event VmaEvent) (diff string) {
+	before := vm.ShowVM()
 	event.doEvent(vm)
-	return vm
+	after := vm.ShowVM()
+	unifiedDiff := difflib.UnifiedDiff{
+		A:       difflib.SplitLines(before),
+		B:       difflib.SplitLines(after),
+		Context: 3,
+	}
+	diff, _ = difflib.GetUnifiedDiffString(unifiedDiff)
+	return
 }
 
 func (vm *virtualMemory) vMap(vma Vma) {
@@ -139,17 +188,16 @@ func (vm *virtualMemory) ChartsRender(host string) *charts.Bar {
 		let endAddr = obj.end.toString(16);
 		let addrItem = dot + '0x' + startAddr + ' - ' + '0x' + endAddr;
 		
+		let attrItem = dot + obj.attr;
 		let offsetItem = dot + '0X' + obj.offset.toString(16);
 		let fileItem = dot + obj.file;
 		
-		return '<div style="font-family: monospace">' + addrItem + '<br />' + offsetItem + '<br />' + fileItem + '</div>';
+		return '<div style="font-family: monospace">' + addrItem + '<br />' + attrItem 
+			+ '<br />' + offsetItem + '<br />' + fileItem + '</div>';
 	}
 `
 
-	const markLineFormatter = `function(params) {
-		return params.name;
-}
-`
+	const markLineFormatter = `function(params) {return params.name;}`
 
 	vmBar := charts.NewBar()
 	vmBar.SetGlobalOptions(

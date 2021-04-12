@@ -43,7 +43,6 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(cnt - 1)
-	log.Infof("wait %d go", cnt-1)
 
 	log.Info("Start load monitor....")
 	for idx, monitor := range monitors {
@@ -58,12 +57,10 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 			defer func() {
 				mutex.Unlock()
 				wg.Done()
-				log.Infof("monitor %q done!", monitor.Name)
 			}()
 			factory[idx].Resolve(waitMonitorCtx, m, ch)
 			mutex.Lock()
 			m.Close()
-			log.Infof("monitor %q resolve ok!", monitor.Name)
 		}()
 	}
 
@@ -76,7 +73,6 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 			// 根模块处理完毕，关闭以通知其他模块停止工作，
 			waitCancelFunc()
 			// 等待其他模块处理
-			log.Info("Wait other done!")
 			wg.Wait()
 			// 处理结束，关闭
 			rootCancelFunc()

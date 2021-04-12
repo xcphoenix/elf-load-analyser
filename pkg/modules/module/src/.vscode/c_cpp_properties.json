@@ -2,7 +2,7 @@
   // https://code.visualstudio.com/docs/cpp/c-cpp-properties-schema-reference
   "env": {
     // use cmd `uname -r`
-    "kernel_module": "5.10.26-1-MANJARO"
+    "kernel_module": "5.9.1-1-rt19-MANJARO"
   },
   "configurations": [
     {

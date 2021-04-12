@@ -47,11 +47,11 @@ func startWebService(d []*data.AnalyseData, reqHandlers []render.ReqHandler) {
 MAIN:
 	addr, err := getAnyFreeAddr()
 	if err != nil {
-		log.Errorf("Cannot select port to start web server: %v", err)
+		log.Errorf("Cannot start web server: %v", err)
 	}
 
 	//goland:noinspection ALL
-	log.Infof(log.Em("Try to start wev server on %s"), "http://"+addr)
+	log.Infof(log.Em("Try to start web server on %s"), "http://"+addr)
 	log.Infof(log.Em("you can view analysis report through this link"))
 	err = http.ListenAndServe(addr, nil)
 	if err != nil {

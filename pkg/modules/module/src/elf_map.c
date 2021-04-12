@@ -143,23 +143,13 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     }
 
     event.shifted_addr = addr;
-    event.prot = prot;
-    event.type = type;
+    // event.prot = prot;
+    // event.type = type;
+    event.prot = (unsigned long)PT_REGS_PARM4(ctx);
+    event.type = (unsigned long)PT_REGS_PARM5(ctx);
     event.total_size = total_size;
     if (filep) {
-        // struct file open_file = {};
-        // bpf_probe_read_kernel(&open_file, sizeof(open_file), (void *)filep);
-        // struct dentry open_dentry = {};
-        // bpf_probe_read_kernel(&open_dentry, sizeof(open_dentry), (void
-        // *)open_file.f_path.dentry); struct inode open_inode = {};
-        // bpf_probe_read_kernel(&open_inode, sizeof(open_inode), (void
-        // *)open_dentry.d_inode);
-
-        // struct inode open_inode = {};
-        // bpf_probe_read_kernel(&open_inode, sizeof(open_inode), (void
-        // *)filep->f_path.dentry->d_inode);
         event.inode = (u64)filep->f_path.dentry->d_inode->i_ino;
-        // bpf_trace_printk("ino: %ul", filep->f_path.dentry->d_inode->i_ino);
     }
 
     struct elf_phdr segment;
