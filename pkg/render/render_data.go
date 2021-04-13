@@ -4,6 +4,7 @@ import (
 	"debug/elf"
 	"errors"
 	"net/http"
+	"sort"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 
@@ -13,11 +14,38 @@ import (
 )
 
 var dataCenter = make([]*data.AnalyseData, 3)
-var dataHandlerList []DataRenderHandler
+var dataHandlerList orderedDataRenderList
 
 // RegisterHandler 注册数据处理器
-func RegisterHandler(d DataRenderHandler) {
-	dataHandlerList = append(dataHandlerList, d)
+func RegisterHandler(name string, d DataRenderHandler, order int) {
+	dataHandlerList = append(dataHandlerList, orderedDataRender{
+		render: d,
+		order:  order,
+		name:   name,
+	})
+}
+
+type orderedDataRender struct {
+	render DataRenderHandler
+	order  int
+	name   string
+}
+
+type orderedDataRenderList []orderedDataRender
+
+func (o orderedDataRenderList) Len() int {
+	return len(o)
+}
+
+func (o orderedDataRenderList) Less(i, j int) bool {
+	if o[i].order != o[j].order {
+		return o[i].order > o[j].order
+	}
+	return o[i].name > o[j].name
+}
+
+func (o orderedDataRenderList) Swap(i, j int) {
+	o[i], o[j] = o[j], o[i]
 }
 
 // DataRenderHandler 渲染数据处理器
@@ -65,8 +93,9 @@ func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
 	}
 
 	var reqHandlers []ReqHandler
+	sort.Sort(dataHandlerList)
 	for _, handler := range dataHandlerList {
-		tmpHandlers := handler.Handle(dataList)
+		tmpHandlers := handler.render.Handle(dataList)
 		reqHandlers = append(reqHandlers, tmpHandlers...)
 	}
 

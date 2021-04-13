@@ -85,7 +85,6 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	// 等待所有模块加载完毕
 	p.WaitReady()
 	log.Info("Load monitors ok")
-
 	return
 }
 

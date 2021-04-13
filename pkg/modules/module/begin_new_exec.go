@@ -2,11 +2,10 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
 )

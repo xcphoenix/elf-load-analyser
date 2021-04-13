@@ -21,6 +21,7 @@ func NewNsMap(kernelBootNs uint64) *NsMap {
 	return &NsMap{kernelBootNs: kernelBootNs, grabTime: time.Now()}
 }
 
+// SendNs 发送开始事件信号
 func SendNs(nsMap *NsMap) bool {
 	if timeAmend != nil {
 		return false
@@ -39,10 +40,12 @@ func SendNs(nsMap *NsMap) bool {
 	return true
 }
 
+// WaitNs 等待开始信号
 func WaitNs() {
 	<-startChain
 }
 
+// AmendTime 纠正时间
 func AmendTime(ts uint64) time.Time {
 	WaitNs()
 	afterNs := ts - timeAmend.kernelBootNs

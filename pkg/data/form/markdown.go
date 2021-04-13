@@ -2,6 +2,7 @@ package form
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
@@ -72,4 +73,12 @@ func (m *Markdown) Append(am *Markdown) *Markdown {
 	}
 	m.appendContent = append(m.appendContent, am.String())
 	return m
+}
+
+func (m *Markdown) AppendCode(lang, code string) *Markdown {
+	return m.Append(NewMarkdown("```" + lang + "\n" + code + "\n```"))
+}
+
+func (m *Markdown) AppendLink(desc, link string) *Markdown {
+	return m.Append(NewMarkdown(fmt.Sprintf("[%s](%s)", desc, link)))
 }

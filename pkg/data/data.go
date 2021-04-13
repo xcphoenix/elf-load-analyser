@@ -28,7 +28,7 @@ var status2Desc = map[Status]string{
 }
 
 type AnalyseData struct {
-	XTime    JSONTime                         `json:"time"`
+	XTime    JSONTime                         `json:"time_amend"`
 	DataList []*AnalyseData                   `json:"dataList"`
 	ID       string                           `json:"id"`
 	Name     string                           `json:"name"`

@@ -51,10 +51,13 @@ func (t timeEnhancer) AfterHandle(tCtx *modules.TableCtx,
 			log.Warnf("%s ==> can not convert %q data, %v", timeEnhancerName, kernelBootNsKey, e)
 			return aData, err
 		}
+		var sendOk bool
 		if tCtx.IsMark(StartMark) {
 			log.Debugf("%s ==> %s notify other coordinate", timeEnhancerName, tCtx.Name)
-			SendNs(NewNsMap(ns))
-		} else {
+			sendOk = SendNs(NewNsMap(ns))
+		}
+		// NOTE: 如果标记为开始事件的 table 被多次触发，可能会造成乱序
+		if !tCtx.IsMark(StartMark) || !sendOk {
 			log.Debugf("%s ==> %s amend timestamp", timeEnhancerName, tCtx.Name)
 			aData.XTime = data.JSONTime(AmendTime(ns))
 		}

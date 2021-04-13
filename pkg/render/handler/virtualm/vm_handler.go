@@ -13,7 +13,7 @@ import (
 const VmaFlag = "_VMA_"
 
 func init() {
-	render.RegisterHandler(NewVMShowDataHandler())
+	render.RegisterHandler("vm_render", NewVMShowDataHandler(), 0x10)
 }
 
 type VMShowDataHandler struct {
@@ -55,9 +55,8 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			}))
 			cnt++
 			analyseData.Change(func(set data.ContentSet) data.Content {
-				md := form.NewMarkdown("[内存模型](" + url + ")").
-					Append(form.NewMarkdown("VMA 变化: ")).
-					Append(form.NewMarkdown("```shell\n" + diff + "```"))
+				md := form.NewMarkdown().AppendLink("内存模型", url).
+					Append(form.NewMarkdown("VMA 变化: ")).AppendCode("shell", diff)
 				return data.NewSet(md, set)
 			})
 		}

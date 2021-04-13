@@ -202,7 +202,7 @@ func (vm *virtualMemory) ChartsRender(host string) *charts.Bar {
 
 	vmBar := charts.NewBar()
 	vmBar.SetGlobalOptions(
-		charts.InitOpts{Height: "700px", Width: "100%", AssetsHost: host},
+		charts.InitOpts{Height: "700px", Width: "80%", AssetsHost: host},
 		charts.TitleOpts{Title: "用户地址空间", Left: "center"},
 		charts.ToolboxOpts{Show: false},
 		charts.LegendOpts{Data: []string{}},
