@@ -8,6 +8,7 @@ import (
 	"hash/fnv"
 	"math"
 	"sort"
+	"strings"
 
 	"github.com/go-echarts/go-echarts/charts"
 )
@@ -128,7 +129,7 @@ func (vm virtualMemory) ShowVM() string {
 		}
 		buf.WriteString(vma.Show())
 	}
-	return buf.String()
+	return strings.TrimSpace(buf.String())
 }
 
 func (vm *virtualMemory) ApplyEvent(event VmaEvent) (diff string) {
