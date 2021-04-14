@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
@@ -120,7 +121,7 @@ func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *d
 	showRegisteredEnhancer()
 
 	perfMaps := initPerMaps(m, p)
-	ok := make(chan struct{})
+	finish := make(chan struct{})
 
 	chCnt := len(p.table2Ctx)
 	cnt := chCnt + 2
@@ -136,7 +137,7 @@ func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *d
 	go func() {
 		defer func() {
 			wg.Wait()
-			close(ok)
+			close(finish)
 		}()
 
 		for remaining > lastRemain {
@@ -169,11 +170,27 @@ func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *d
 		perfMap.Start()
 	}
 	log.Infof("Monitor %s start...", p.Monitor)
-	<-ok
-	for _, perfMap := range perfMaps {
-		perfMap.Stop()
+	<-finish
+	// FIXME cannot stop on sometimes
+	for idx, perfMap := range perfMaps {
+		blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500)
 	}
 	log.Infof("Monitor %s stop", p.Monitor)
+}
+
+func blockTaskTimeout(name string, task func(), timeout time.Duration) {
+	ch := make(chan struct{})
+	go func() {
+		task()
+		close(ch)
+	}()
+	select {
+	case <-ch:
+		return
+	case <-time.After(timeout):
+		log.Warnf("task %q timeout", name)
+		return
+	}
 }
 
 func showRegisteredEnhancer() {

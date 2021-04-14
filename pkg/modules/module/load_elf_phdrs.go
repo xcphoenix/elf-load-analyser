@@ -5,6 +5,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
 )
@@ -31,6 +32,5 @@ func init() {
 	m.RegisterOnceTable("load_elf_phdrs_events", func(data []byte) (*data.AnalyseData, error) {
 		return modules.Render(data, &loadElfPhdrsEvent{}, true)
 	})
-	// FIXME module 无法终止
-	//factory.Register(m.Mm())
+	factory.Register(m.Mm())
 }

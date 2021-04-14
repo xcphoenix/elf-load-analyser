@@ -48,6 +48,7 @@ bcc:
 fronted: CHECKSUM := md5sums
 fronted: FRONTED_DIR := $(WORK_DIR)/../pkg/web/template
 fronted:
+	@echo "Build fronted"
 	@if [ "$(cache)" == "true" ] && [ -f "$(FRONTED_DIR)/$(CHECKSUM)" ] && [ -d "$(FRONTED_DIR)/dist" ] ; then \
 		echo "Check MD5 sum"; \
 		old_checksum=$(shell cat "$(FRONTED_DIR)/$(CHECKSUM)"); \
@@ -72,9 +73,8 @@ go: bcc fronted
 
 	mkdir -p "$(TARGET_DIR)"
 	@echo "Start build target"
-	@echo "Build with ld_flags: $${ld_flags}"
 
-	if [ "$(release)" == "true" ]; then \
+	@if [ "$(release)" == "true" ]; then \
 		echo "Release mode"; \
 		cd $(GO_WORK) && go build -ldflags "$${ld_flags} -s -w" -o "$(TARGET_DIR)/$(TARGET)" \
                         github.com/xcphoenix/elf-load-analyser/cmd; \
