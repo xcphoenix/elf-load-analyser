@@ -262,7 +262,7 @@ func archWord() uint {
 func hash(s string) int {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(s))
-	return int(h.Sum32()) + len(s)
+	return int(h.Sum32())
 }
 
 func vmaColor(vma Vma) string {

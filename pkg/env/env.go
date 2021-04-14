@@ -40,7 +40,7 @@ func GetKernelConfigs() map[string]struct{} {
 	if err != nil {
 		log.Errorf("Open config file %q failed, %v", kernelConfigGzFile, err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	reader, err := gzip.NewReader(file)
 	if err != nil {

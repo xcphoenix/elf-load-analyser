@@ -13,10 +13,11 @@ var (
 	AnalyseType = Type{ID: "_LOAD", Name: "加载过程"}
 )
 
+// Render 渲染器
 type Render interface {
-	Render() (*data.AnalyseData, error)
-	Type() Type
-	Release()
+	Render() (*data.AnalyseData, error) // Render 渲染数据
+	Type() Type                         // Type 渲染类型
+	Release()                           // Release 资源释放
 }
 
 func doRender(r Render) (d *data.AnalyseData, e error) {
