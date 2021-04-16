@@ -27,9 +27,10 @@ func TestVirtualMemory_Render(t *testing.T) {
 		NewVma: BuildVma(0x7ffe328d3000, 0x7ffe328f4000, 5, 0x1, 0x0, StackMap),
 	})
 
-	f, err := os.Create("test.html")
+	f, err := os.Create("testdata/test.html")
 	if err != nil {
 		return
 	}
-	_ = virtualMemory.ChartsRender("http://127.0.0.1:8083/assets/").Render(f)
+	bar := virtualMemory.ChartsRender("http://127.0.0.1:8080/assets/")
+	_ = bar.Render(f)
 }

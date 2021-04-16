@@ -35,6 +35,7 @@ type TableCtx struct {
 	mark    map[string]struct{}
 }
 
+// IsMark 返回字段是否被标记
 func (t *TableCtx) IsMark(mk string) bool {
 	_, ok := t.mark[mk]
 	return ok
@@ -53,6 +54,7 @@ type PerfResolveMm struct {
 	table2Ctx map[string]*TableCtx
 }
 
+// NewPerfResolveMm 创建 Perf 模块
 func NewPerfResolveMm(m *MonitorModule) *PerfResolveMm {
 	perfMm := &PerfResolveMm{
 		MonitorModule: m,
@@ -63,6 +65,7 @@ func NewPerfResolveMm(m *MonitorModule) *PerfResolveMm {
 	return perfMm
 }
 
+// Mm 返回实际的模块
 func (p *PerfResolveMm) Mm() *MonitorModule {
 	return p.MonitorModule
 }
@@ -94,6 +97,7 @@ func (p *PerfResolveMm) RegisterTable(name string, loop bool, handler TableHandl
 	return tableChannel
 }
 
+// SetMark 设置标记
 func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 	ctx, ok := p.table2Ctx[name]
 	if !ok {
@@ -103,6 +107,7 @@ func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 	return p
 }
 
+// IsEnd 模块是否被设置为终止模块
 func (p *PerfResolveMm) IsEnd() bool {
 	return p.MonitorModule.IsEnd
 }
@@ -112,6 +117,7 @@ func readyNotify(ch chan<- *data.AnalyseData) {
 }
 
 //nolint:funlen
+// Resolve 模块的解析策略
 func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
 	if len(p.tableIds) == 0 {
 		log.Warnf("Monitor %q without event", p.Monitor)
@@ -173,7 +179,7 @@ func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *d
 	<-finish
 	// FIXME cannot stop on sometimes
 	for idx, perfMap := range perfMaps {
-		blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500)
+		blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500*2)
 	}
 	log.Infof("Monitor %s stop", p.Monitor)
 }

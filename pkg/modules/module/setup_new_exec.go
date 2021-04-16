@@ -9,6 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 )
 
 //go:embed src/setup_new_exec.c.k
@@ -34,7 +35,8 @@ type setupNewExecRetEvent struct {
 }
 
 func (s setupNewExecRetEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("虚拟空间大小：0x%x", s.TaskSize)))
+	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("虚拟空间大小：0x%x", s.TaskSize))).
+		PutExtra(virtualm.VmaFlag, virtualm.TaskSizeVMEvent{TaskSize: s.TaskSize})
 }
 
 func init() {

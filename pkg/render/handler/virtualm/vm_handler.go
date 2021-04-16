@@ -8,6 +8,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 const VmaFlag = "_VMA_"
@@ -32,7 +33,7 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 	var vmHandlers []render.ReqHandler
 	for _, analyseData := range dataCollection {
 		if val, ok := analyseData.ExtraByKey(VmaFlag); ok {
-			event, ok := val.(VmaEvent)
+			event, ok := val.(VMEvent)
 			if !ok {
 				continue
 			}
@@ -55,8 +56,12 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			}))
 			cnt++
 			analyseData.Change(func(set data.ContentSet) data.Content {
-				md := form.NewMarkdown().AppendLink("内存模型", url).
-					Append(form.NewMarkdown("VMA 变化: ")).AppendCode("shell", diff)
+				md := form.NewMarkdown().AppendLink("内存模型", url)
+				if len(strings.TrimSpace(diff)) != 0 {
+					md.Append(form.NewMarkdown("VMA 变化: ")).AppendCode("shell", diff)
+				} else {
+					md.Append(form.NewMarkdown("<br />"))
+				}
 				return data.NewSet(md, set)
 			})
 		}

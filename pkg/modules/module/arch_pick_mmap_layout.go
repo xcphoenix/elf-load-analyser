@@ -9,6 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 )
 
 //go:embed src/arch_pick_mmap_layout.c.k
@@ -20,7 +21,8 @@ type archPickMmapLayoutEvent struct {
 }
 
 func (a archPickMmapLayoutEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("mmap 基地址：0x%x", a.MmapBase)))
+	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("mmap 基地址：0x%x", a.MmapBase))).
+		PutExtra(virtualm.VmaFlag, virtualm.MMapVMEvent{MmapBase: a.MmapBase})
 }
 
 func init() {

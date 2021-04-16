@@ -9,6 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 )
 
 //go:embed src/arch_randomize_brk.c.k
@@ -30,7 +31,14 @@ func (a archRandomizeBrkEvent) Render() *data.AnalyseData {
 		fmt.Sprintf("start_brk: 0x%x", a.StartBrk),
 		fmt.Sprintf("brk: 0x%x", a.Brk),
 	))
-	return data.NewAnalyseData(result)
+	d := data.NewAnalyseData(result)
+	if a.Type != 0 {
+		d.PutExtra(virtualm.VmaFlag, virtualm.BrkVMEvent{
+			StartBrk: a.StartBrk,
+			Brk:      a.Brk,
+		})
+	}
+	return d
 }
 
 func init() {

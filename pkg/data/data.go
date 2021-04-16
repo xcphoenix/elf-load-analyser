@@ -124,8 +124,9 @@ func (a *AnalyseData) RmExtra(k string) {
 	delete(a.Extra, k)
 }
 
-func (a *AnalyseData) PutExtra(k string, v interface{}) {
+func (a *AnalyseData) PutExtra(k string, v interface{}) *AnalyseData {
 	a.Extra[k] = v
+	return a
 }
 
 func (a *AnalyseData) ExtraByKey(k string) (interface{}, bool) {
