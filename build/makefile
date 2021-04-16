@@ -5,6 +5,8 @@ GO_WORK := $(WORK_DIR)/../
 TARGET_DIR := $(GO_WORK)target
 TARGET := ela
 
+.DEFAULT_GOAL := go
+
 define rm_file
 find "$(1)" -name "$(2)" -exec rm -- {} \$;
 endef
@@ -19,7 +21,6 @@ $(shell cd $(1) && find ./ -type f \
 endef
 
 define build_fronted
-	echo "Build fronted"; \
 	export MOCK=none; \
 	cd $(1) && yarn; \
 	cd $(1) && yarn build; \
@@ -30,6 +31,8 @@ endef
 bcc: OUT_SUFFIX := k
 bcc: SRC_DIR := $(WORK_DIR)/../pkg/modules/module/src
 bcc:
+	@echo ""
+	@echo "====================== BCC ======================"
 	@echo "Bcc source dir: $(SRC_DIR)";
 	@echo "Clean old file"
 	$(call rm_file,$(SRC_DIR),*.$(OUT_SUFFIX));
@@ -44,10 +47,13 @@ bcc:
 		sed '/^[[:blank:]]*#include[[:blank:]]\+"[[:print:]]\+"$$/d' "$${line}" | cat >> "$${line}".$(OUT_SUFFIX); \
 		sed -i '/^[[:blank:]]*#include[[:blank:]]\+"_dev.h"$$/d' "$${line}".$(OUT_SUFFIX); \
 	done
+	@echo "================================================="
 
 fronted: CHECKSUM := md5sums
 fronted: FRONTED_DIR := $(WORK_DIR)/../pkg/web/template
 fronted:
+	@echo ""
+	@echo "==================== FRONTED ===================="
 	@echo "Build fronted"
 	@if [ "$(cache)" == "true" ] && [ -f "$(FRONTED_DIR)/$(CHECKSUM)" ] && [ -d "$(FRONTED_DIR)/dist" ] ; then \
 		echo "Check MD5 sum"; \
@@ -63,10 +69,13 @@ fronted:
 	else \
 		$(call build_fronted,$(FRONTED_DIR),$(CHECKSUM)); \
 	fi
+	@echo "================================================="
 
 go: BANNER_LEN_EXPR := github.com/xcphoenix/elf-load-analyser/pkg/env.BannerLen=
 go: BANNER_PATH := $(WORK_DIR)/../pkg/env/banner.txt
 go: bcc fronted
+	@echo ""
+	@echo "===================== BUILD ====================="
 	@echo "Calculate banner width";
 	banner_max_len=$(shell awk '{if (length(max)<length()) max=$$0}END{print length(max)+10;}' "$(BANNER_PATH)");
 	ld_flags="$(shell echo " -X $(BANNER_LEN_EXPR)$${banner_max_len}")";
@@ -82,13 +91,19 @@ go: bcc fronted
 		cd $(GO_WORK) && go build -ldflags "$${ld_flags}" -o "$(TARGET_DIR)/$(TARGET)" \
                 github.com/xcphoenix/elf-load-analyser/cmd; \
 	fi
+	@echo "Build ok!"
+	@echo "================================================="
 
 compress: LEVEL ?= 9
 compress: go
+	@echo ""
+	@echo "================== COMPRESSED ==================="
 	@echo "Clean old binary";
 	$(call rm_file,$(TARGET_DIR),$(TARGET)-compressed);
 
 	@echo "Compressed";
 	cd "$(TARGET_DIR)" && upx -$(LEVEL) -o $(TARGET)-compressed $(TARGET);
+	@echo "Compressed ok!"
+	@echo "================================================="
 
 .PHONY: bcc,fronted,go,compress
