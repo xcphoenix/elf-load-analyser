@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 
@@ -32,6 +33,8 @@ var (
 	infoLogger  logger = newBaseLogger(ILevel, os.Stdout, "I ", defaultFlags)
 	warnLogger  logger = newBaseLogger(WLevel, os.Stdout, "W ", defaultFlags).SetHandle(warn)
 	errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetHandle(err)
+
+	cache sync.Map
 )
 
 var XFlagSet = xflag.OpInject(&curLevelDesc, "log", "info",
@@ -162,30 +165,32 @@ func appendPkgLine(a interface{}) string {
 }
 
 // #1
-// NOTE: cache pkg
-func getPkgLine() (pkg string) {
-	_, pkg, _, _ = runtime.Caller(4)
-	pkgPrefix, cmdPrefix := "pkg", "cmd"
-	if idx := strings.LastIndex(pkg, "/"); idx != -1 {
-		pkg = pkg[:idx]
-	}
-	if idx := strings.Index(pkg, pkgPrefix); idx != -1 {
-		pkg = pkg[idx+len(pkgPrefix)+1:]
-	} else if idx := strings.Index(pkg, cmdPrefix); idx != -1 {
-		pkg = pkg[idx:]
-	}
-	if strings.ContainsRune(pkg, '/') {
-		var buf bytes.Buffer
-		pkgList := strings.Split(pkg, "/")
-		for i := range pkgList {
-			if i != len(pkgList)-1 {
-				buf.WriteString(pkgList[i][0:1])
-				buf.WriteRune('/')
-			} else {
-				buf.WriteString(pkgList[i])
-			}
+func getPkgLine() string {
+	_, pkg, _, _ := runtime.Caller(4)
+	pkgInterface, _ := cache.LoadOrStore(pkg, func() string {
+		pkgPrefix, cmdPrefix := "pkg", "cmd"
+		if idx := strings.LastIndex(pkg, "/"); idx != -1 {
+			pkg = pkg[:idx]
 		}
-		return buf.String()
-	}
-	return
+		if idx := strings.Index(pkg, pkgPrefix); idx != -1 {
+			pkg = pkg[idx+len(pkgPrefix)+1:]
+		} else if idx := strings.Index(pkg, cmdPrefix); idx != -1 {
+			pkg = pkg[idx:]
+		}
+		if strings.ContainsRune(pkg, '/') {
+			var buf bytes.Buffer
+			pkgList := strings.Split(pkg, "/")
+			for i := range pkgList {
+				if i != len(pkgList)-1 {
+					buf.WriteString(pkgList[i][0:1])
+					buf.WriteRune('/')
+				} else {
+					buf.WriteString(pkgList[i])
+				}
+			}
+			return buf.String()
+		}
+		return pkg
+	}())
+	return pkgInterface.(string)
 }

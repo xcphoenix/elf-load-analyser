@@ -5,19 +5,19 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const findCmdPrefix = "find / -type f -xdev -inum "
 
-var cache = map[uint64]string{}
+var cache sync.Map
 
 // INodePath 传入 inode，获取文件路径名
 func INodePath(inode uint64) string {
 	if inode <= 0 {
 		return ""
 	}
-	if path, ok := cache[inode]; !ok {
-		// FIXME 效率太慢
+	path, _ := cache.LoadOrStore(inode, func() string {
 		cmd := exec.Command("sh", "-c", findCmdPrefix+strconv.FormatUint(inode, 10), " 2>& /dev/null") //nolint:gosec
 		var out bytes.Buffer
 		var err bytes.Buffer
@@ -25,10 +25,7 @@ func INodePath(inode uint64) string {
 		cmd.Stderr = &err
 
 		_ = cmd.Run()
-		path := strings.TrimSpace(out.String())
-		cache[inode] = path
-		return path
-	} else {
-		return path
-	}
+		return strings.TrimSpace(out.String())
+	}())
+	return path.(string)
 }

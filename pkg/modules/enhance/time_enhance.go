@@ -5,6 +5,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"strconv"
+	"time"
 )
 
 const (
@@ -17,17 +18,9 @@ func init() {
 	modules.RegisteredEnhancer(timeEnhancerName, &timeEnhancer{})
 }
 
-type TimeEvent interface {
-	Ns() uint64
-}
-
 // TimeEventResult EventResult with env boot ns, coordinate with enhance.timeEnhancer
 type TimeEventResult struct {
 	TS uint64 `enhance:"_ns_"`
-}
-
-func (t *TimeEventResult) Ns() uint64 {
-	return t.TS
 }
 
 // timeEnhancer 时间修正处理器
@@ -35,7 +28,7 @@ type timeEnhancer struct{}
 
 func (t timeEnhancer) PreHandle(tCtx *modules.TableCtx) {
 	if !tCtx.IsMark(StartMark) {
-		WaitNs()
+		waitNs()
 	}
 }
 
@@ -54,12 +47,12 @@ func (t timeEnhancer) AfterHandle(tCtx *modules.TableCtx,
 		var sendOk bool
 		if tCtx.IsMark(StartMark) {
 			log.Debugf("%s ==> %s notify other coordinate", timeEnhancerName, tCtx.Name)
-			sendOk = SendNs(NewNsMap(ns))
+			sendOk = sendNs(newNsMap(ns, time.Time{}))
 		}
 		// NOTE: 如果标记为开始事件的 table 被多次触发，可能会造成乱序
 		if !tCtx.IsMark(StartMark) || !sendOk {
 			log.Debugf("%s ==> %s amend timestamp", timeEnhancerName, tCtx.Name)
-			aData.XTime = data.JSONTime(AmendTime(ns))
+			aData.XTime = data.JSONTime(amendTime(ns))
 		}
 		aData.RmExtra(kernelBootNsKey)
 	}

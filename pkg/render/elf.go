@@ -30,7 +30,7 @@ func NewElfRender(filepath string) (*ElfRender, error) {
 	return &ElfRender{filepath: filepath, f: eFile}, nil
 }
 
-func (e *ElfRender) ElfData() (elf.FileHeader, bool, string) {
+func (e *ElfRender) elfData() (elf.FileHeader, bool, string) {
 	fHeader := e.f.FileHeader
 	isDyn := !xelf.IsNotDynamic(e.f)
 	interp, err := xelf.GetInterp(e.f)

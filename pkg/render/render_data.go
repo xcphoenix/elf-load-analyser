@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 
@@ -79,7 +80,7 @@ func PreAnalyse(param *bcc.PreParam) {
 			log.Errorf("Analyse target binary form error, %v", e)
 		}
 	}
-	param.Header, param.IsDyn, param.Interp = elfRender.ElfData()
+	param.Header, param.IsDyn, param.Interp = elfRender.elfData()
 	d, _ = doRender(elfRender)
 	dataCenter[1] = d
 }
@@ -88,10 +89,17 @@ func PreAnalyse(param *bcc.PreParam) {
 func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
 	dataList := p.Data()
 
+	var wg sync.WaitGroup
+	wg.Add(len(dataList))
 	for _, analyseData := range dataList {
-		analyseData.DoLazyFunc()
+		analyseData := analyseData
+		go func() {
+			defer wg.Done()
+			analyseData.DoLazyFunc()
+		}()
 	}
 
+	wg.Wait()
 	var reqHandlers []ReqHandler
 	sort.Sort(dataHandlerList)
 	for _, handler := range dataHandlerList {
