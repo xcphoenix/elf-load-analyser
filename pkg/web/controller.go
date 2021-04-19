@@ -2,17 +2,18 @@ package web
 
 import (
 	"errors"
-	"fmt"
-	"net"
-	"net/http"
-	"strconv"
-	"syscall"
+	_ "net/http/pprof"
 
+	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
+	"net"
+	"net/http"
+	"strconv"
+	"syscall"
 )
 
 var (
@@ -44,25 +45,27 @@ func startWebService(d []*data.AnalyseData, reqHandlers []render.ReqHandler) {
 	}
 
 	// 程序的主流程，若定义的端口被占用，使用随机端口
-MAIN:
-	addr, err := getAnyFreeAddr()
-	if err != nil {
-		log.Errorf("Cannot start web server: %v", err)
-	}
-
-	//goland:noinspection ALL
-	log.Infof(log.Em("Try to start web server on %s"), "http://"+addr)
-	log.Infof(log.Em("you can view analysis report through this link"))
-	err = http.ListenAndServe(addr, nil)
-	if err != nil {
-		errType := syscall.EADDRINUSE
-		if port != 0 && errors.Is(err, errType) {
-			log.Warnf("Failed to start web service on defined port: %d, %v", port, err)
-			log.Warn("Retry use random port...")
-			port = 0
-			goto MAIN
+	for {
+		addr, err := getAnyFreeAddr()
+		if err != nil {
+			log.Errorf("Cannot start web server: %v", err)
 		}
-		log.Errorf("Failed to start web service, %v", err)
+
+		//goland:noinspection ALL
+		log.Infof(log.Em("Try to start web server on %s"), "http://"+addr)
+		log.Infof(log.Em("you can view analysis report through this link"))
+		err = http.ListenAndServe(addr, nil)
+		if err != nil {
+			errType := syscall.EADDRINUSE
+			if port != 0 && errors.Is(err, errType) {
+				log.Warnf("Failed to start web service on defined port: %d, %v", port, err)
+				log.Warn("Retry use random port...")
+				port = 0
+				continue
+			}
+			log.Errorf("Failed to start web service, %v", err)
+		}
+		break
 	}
 }
 

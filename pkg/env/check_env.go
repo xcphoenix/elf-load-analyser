@@ -16,7 +16,7 @@ var requiredConfigs = []string{
 	"CONFIG_BPF_JIT",
 	helper.IfElse(GetKernelVersion() >= "4.7", "CONFIG_HAVE_EBPF_JIT", "CONFIG_HAVE_BPF_JIT").(string),
 	"CONFIG_BPF_EVENTS",
-	// "CONFIG_IKHEADERS",
+	//"CONFIG_IKHEADERS",
 }
 
 // 检查 BCC 环境
@@ -36,10 +36,8 @@ func CheckEnv() {
 	}
 
 	// Check kernel config
-	for _, entry := range requiredConfigs {
-		if _, ok := GetKernelConfigs()[entry]; !ok {
-			log.Errorf(generalConfigTip())
-		}
+	if !ValidateKernelConfigs(requiredConfigs...) {
+		log.Errorf(generalConfigTip())
 	}
 }
 

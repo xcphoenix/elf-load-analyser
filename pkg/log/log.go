@@ -29,10 +29,10 @@ var (
 	currentLevel Level
 	defaultFlags = log.Lmicroseconds | log.Ltime
 
-	debugLogger logger = newBaseLogger(DLevel, os.Stdout, "D ", defaultFlags).SetHandle(minor)
+	debugLogger logger = newBaseLogger(DLevel, os.Stdout, "D ", defaultFlags).SetDecorator(minor)
 	infoLogger  logger = newBaseLogger(ILevel, os.Stdout, "I ", defaultFlags)
-	warnLogger  logger = newBaseLogger(WLevel, os.Stdout, "W ", defaultFlags).SetHandle(warn)
-	errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetHandle(err)
+	warnLogger  logger = newBaseLogger(WLevel, os.Stdout, "W ", defaultFlags).SetDecorator(warn)
+	errorLogger logger = newBaseLogger(ELevel, os.Stderr, "E ", defaultFlags).SetDecorator(err)
 
 	cache sync.Map
 )
@@ -79,25 +79,25 @@ func setConfigLevel() error {
 }
 
 type baseLogger struct {
-	log    *log.Logger
-	level  Level
-	handle func(s string) string
+	log       *log.Logger
+	level     Level
+	decorator func(s string) string
 }
 
 func newBaseLogger(level Level, w io.Writer, prefix string, flag int) *baseLogger {
 	return &baseLogger{level: level, log: log.New(w, prefix, flag)}
 }
 
-func (b *baseLogger) SetHandle(handle func(s string) string) *baseLogger {
-	b.handle = handle
+func (b *baseLogger) SetDecorator(decorator func(s string) string) *baseLogger {
+	b.decorator = decorator
 	return b
 }
 
 func (b baseLogger) Log(a interface{}) {
 	message := fmt.Sprint(a)
 	wrapMsg := message
-	if b.handle != nil {
-		wrapMsg = b.handle(message)
+	if b.decorator != nil {
+		wrapMsg = b.decorator(message)
 	}
 	b.log.Println(wrapMsg)
 }

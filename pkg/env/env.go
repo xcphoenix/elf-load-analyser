@@ -34,8 +34,8 @@ func GetKernelVersion() string {
 	return kernelVersion
 }
 
-// GetKernelConfigs get kernel configs from kernelConfigGzFile
-func GetKernelConfigs() map[string]struct{} {
+// ValidateKernelConfigs get kernel configs from kernelConfigGzFile
+func ValidateKernelConfigs(target ...string) bool {
 	file, err := os.Open(kernelConfigGzFile)
 	if err != nil {
 		log.Errorf("Open config file %q failed, %v", kernelConfigGzFile, err)
@@ -49,19 +49,30 @@ func GetKernelConfigs() map[string]struct{} {
 	//goland:noinspection GoUnhandledErrorResult
 	defer reader.Close()
 
-	configs := make(map[string]struct{})
+	var configLen = len(target)
+	var config = make(map[string]struct{})
+	for i := range target {
+		config[target[i]] = struct{}{}
+	}
 
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		item := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(item, "CONFIG") &&
-			(strings.HasSuffix(item, "=Y") || strings.HasSuffix(item, "=y")) {
+		if strings.HasPrefix(item, "CONFIG") {
 			kv := strings.FieldsFunc(item, equalCharFunc)
-			configs[kv[0]] = struct{}{}
+			if len(kv) < 2 {
+				continue
+			}
+			if _, ok := config[kv[0]]; ok {
+				if strings.ToLower(kv[1]) != "y" {
+					return false
+				}
+				configLen--
+			}
 		}
 	}
 
-	return configs
+	return configLen == 0
 }
 
 func extraKernelVersion() {
