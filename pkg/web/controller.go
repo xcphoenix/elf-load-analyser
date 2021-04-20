@@ -2,7 +2,7 @@ package web
 
 import (
 	"errors"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
