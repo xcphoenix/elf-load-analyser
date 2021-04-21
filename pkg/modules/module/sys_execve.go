@@ -48,12 +48,8 @@ func init() {
 		},
 		IsEnd: true,
 	})
-	m.RegisterOnceTable(entry, func(d []byte) (*data.AnalyseData, error) {
-		return modules.Render(d, &sysExecveEvent{}, true)
-	})
-	m.RegisterOnceTable("ret_event", func(d []byte) (*data.AnalyseData, error) {
-		return modules.Render(d, &sysExecveRetEvent{}, true)
-	})
+	m.RegisterOnceTable(entry, modules.RenderHandler(&sysExecveEvent{}))
+	m.RegisterOnceTable("ret_event", modules.RenderHandler(&sysExecveRetEvent{}))
 	m.SetMark(entry, enhance.StartMark)
 	factory.Register(m.Mm())
 }

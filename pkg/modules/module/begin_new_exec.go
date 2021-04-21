@@ -29,8 +29,6 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__begin_new_exec", "begin_new_exec", -1),
 		},
 	})
-	m.RegisterOnceTable("begin_new_exec_events", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &beginNewExecEvent{}, true)
-	})
+	m.RegisterOnceTable("begin_new_exec_events", modules.RenderHandler(&beginNewExecEvent{}))
 	factory.Register(m.Mm())
 }

@@ -40,11 +40,7 @@ func init() {
 			return !param.IsDyn
 		},
 	})
-	m.RegisterTable("interp_elf_map_events", true, func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &interpElfMapEventType{}, true)
-	})
-	m.RegisterOnceTable("interp_elf_map_prop_events", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &interpElfMapPropEventType{}, true)
-	})
+	m.RegisterTable("interp_elf_map_events", true, modules.RenderHandler(&interpElfMapEventType{}))
+	m.RegisterOnceTable("interp_elf_map_prop_events", modules.RenderHandler(&interpElfMapPropEventType{}))
 	factory.Register(m.Mm())
 }

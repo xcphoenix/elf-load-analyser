@@ -72,6 +72,12 @@ func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool
 	return m, mm.IsEnd, false
 }
 
+func RenderHandler(event EventResult) func(data []byte) (*data.AnalyseData, error) {
+	return func(data []byte) (*data.AnalyseData, error) {
+		return Render(data, event, true)
+	}
+}
+
 func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, error) {
 	err := binary.Read(bytes.NewBuffer(d), bpf.GetHostByteOrder(), event)
 	if err != nil {

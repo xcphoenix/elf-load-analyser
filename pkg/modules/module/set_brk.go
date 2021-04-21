@@ -1,7 +1,7 @@
 package module
 
 import (
-	_ "embed"
+	_ "embed" // embed for set_brk
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
@@ -63,8 +63,6 @@ func init() {
 		Source:  setBrkSource,
 		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__set_brk", "set_brk", -1)},
 	})
-	m.RegisterTable("set_brk_events", true, func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &setBrkEvent{}, true)
-	})
+	m.RegisterTable("set_brk_events", true, modules.RenderHandler(&setBrkEvent{}))
 	factory.Register(m.Mm())
 }

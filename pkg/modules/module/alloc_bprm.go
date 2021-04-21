@@ -44,8 +44,6 @@ func init() {
 		},
 		IsEnd: false,
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &allocBprmEvent{}, true)
-	})
+	m.RegisterOnceTable("call_event", modules.RenderHandler(&allocBprmEvent{}))
 	factory.Register(m.Mm())
 }

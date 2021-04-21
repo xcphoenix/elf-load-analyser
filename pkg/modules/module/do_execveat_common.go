@@ -40,8 +40,6 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__do_execveat_common", "do_execveat_common", -1),
 		},
 	})
-	m.RegisterOnceTable("call_event", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &execveatComEvent{}, true)
-	})
+	m.RegisterOnceTable("call_event", modules.RenderHandler(&execveatComEvent{}))
 	factory.Register(m.Mm())
 }

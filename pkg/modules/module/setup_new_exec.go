@@ -48,11 +48,7 @@ func init() {
 			bcc.NewKretprobeEvent("kretprobe__setup_new_exec", "setup_new_exec", -1),
 		},
 	})
-	m.RegisterOnceTable("setup_new_exec_events", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &setupNewExecEvent{}, true)
-	})
-	m.RegisterOnceTable("setup_new_exec_ret_events", func(data []byte) (*data.AnalyseData, error) {
-		return modules.Render(data, &setupNewExecRetEvent{}, true)
-	})
+	m.RegisterOnceTable("setup_new_exec_events", modules.RenderHandler(&setupNewExecEvent{}))
+	m.RegisterOnceTable("setup_new_exec_ret_events", modules.RenderHandler(&setupNewExecRetEvent{}))
 	factory.Register(m.Mm())
 }
