@@ -26,10 +26,13 @@ TDATA(elf_map_event_type,  // elf map event type
       u64 size;            // 映射的区域大小
       u64 off;             // 映射的部分在文件中的偏移量
 
-      int64_t prot;        // 权限
-      int64_t type;        // 标志位
-      u64 total_size;      // 映射部分的总大小
-      u64 inode;           // inode名
+      u64 vma_start;  // vma_start
+      u64 vma_end;    // vma_end
+      u64 vma_off;    // vma_off
+      u64 vma_flags;  // 标志位
+
+      u64 total_size;  // 映射部分的总大小
+      u64 inode;       // inode名
 );
 
 // 映射属性相关
@@ -66,6 +69,27 @@ BPF_PERCPU_ARRAY(map_array, u32, 1);
 BPF_PERCPU_ARRAY(rnd_array, unsigned long, 1);
 
 static u32 update_align(Elf_Xword align, u32 before);
+
+int kprobe__vma_link(struct pt_regs *ctx, struct mm_struct *mm,
+                     struct vm_area_struct *vma, struct vm_area_struct *prev) {
+    if ((bpf_get_current_pid_tgid() >> 32) != _PID_) {
+        return 0;
+    }
+
+    int zero = 0;
+
+    struct elf_map_event_type *e = emap_array.lookup(&zero);
+    if (!e) {
+        return 0;
+    }
+    e->vma_start = (unsigned long)vma->vm_start;
+    e->vma_end   = (unsigned long)vma->vm_end;
+    e->vma_off   = (unsigned long)vma->vm_pgoff; // FIXME missing data
+    e->vma_flags = (unsigned long)vma->vm_flags;
+    emap_array.update(&zero, e);
+
+    return 0;
+}
 
 int kprobe__set_brk(struct pt_regs *ctx, unsigned long start, unsigned long end,
                     int prot) {
@@ -112,7 +136,7 @@ int kretprobe__arch_mmap_rnd(struct pt_regs *ctx) {
         return 0;
     }
 
-    int zero = 0;
+    int zero          = 0;
     unsigned long rnd = PT_REGS_RC(ctx);
     rnd_array.update(&zero, &rnd);
     return 0;
@@ -126,7 +150,7 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
         return 0;
     }
 
-    int zero = 0;
+    int zero                        = 0;
     struct elf_map_event_type event = {};
 
     u32 *total_cnt_p = total_array.lookup(&zero);
@@ -143,10 +167,6 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     }
 
     event.shifted_addr = addr;
-    // event.prot = prot;
-    // event.type = type;
-    event.prot = (unsigned long)PT_REGS_PARM4(ctx);
-    event.type = (unsigned long)PT_REGS_PARM5(ctx);
     event.total_size = total_size;
     if (filep) {
         event.inode = (u64)filep->f_path.dentry->d_inode->i_ino;
@@ -154,7 +174,7 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
 
     struct elf_phdr segment;
     bpf_probe_read_kernel(&segment, sizeof(segment), (void *)eppnt);
-    event.off = segment.p_offset - ELF_PAGEOFFSET(segment.p_vaddr);
+    event.off          = segment.p_offset - ELF_PAGEOFFSET(segment.p_vaddr);
     event.aligned_addr = ELF_PAGESTART(addr);
     event.size =
         ELF_PAGEALIGN(segment.p_filesz + ELF_PAGEOFFSET(segment.p_vaddr));
@@ -168,7 +188,6 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
         "vaddr: 0x%llx, vaddr with bias: 0x%llx, real addr: 0x%llx",
         event.vaddr, event.shifted_addr, event.aligned_addr);
     bpf_trace_printk("size: 0x%llx, offset: 0x%llx", event.size, event.off);
-    bpf_trace_printk("prot: %ld, type: %ld\n", event.prot, event.type);
 #endif
 
     struct task_struct *t = (struct task_struct *)bpf_get_current_task();
@@ -183,7 +202,7 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
 
         init_tdata(prop_p);
         prop_p->e_entry = _ENTRY_;
-        prop_p->vaddr = segment.p_vaddr;
+        prop_p->vaddr   = segment.p_vaddr;
 
         if (!_ISDYN_) {
 #ifdef _X_DEBUG_
@@ -207,7 +226,7 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
                         return 0;
                     }
                     prop_p->is_rnd = 1;
-                    prop_p->rnd = (u64)*rnd_p;
+                    prop_p->rnd    = (u64)*rnd_p;
 #ifdef _X_DEBUG_
                     bpf_trace_printk("\t- append rnd: 0x%lx", *rnd_p);
 #endif
@@ -295,7 +314,7 @@ int kretprobe__elf_map(struct pt_regs *ctx) {
         }
         prop_array.update(&zero, prop);
     }
-    map_count = (map_count_p ? (*map_count_p) : 0) + 1;
+    map_count          = (map_count_p ? (*map_count_p) : 0) + 1;
     event->actual_addr = addr;
 
     // update map cnt

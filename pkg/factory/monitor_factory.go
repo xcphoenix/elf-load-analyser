@@ -24,6 +24,8 @@ func Register(mm *modules.MonitorModule) {
 	factory = append(factory, mm)
 }
 
+// About memory: https://github.com/iovisor/bcc/issues/1949
+// ---
 // LoadMonitors ctx The run context, ctr control the proc when to stop
 func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	registerMutex.Lock()

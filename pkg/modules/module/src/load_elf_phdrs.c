@@ -2,8 +2,7 @@
 
 #include "common.h"
 
-TDATA(begin_new_exec_event_type, 
-); 
+TDATA(begin_new_exec_event_type, TEMPTY);
 BPF_PERF_OUTPUT(load_elf_phdrs_events);
 
 int kprobe__load_elf_phdrs(struct pt_regs* ctx) {

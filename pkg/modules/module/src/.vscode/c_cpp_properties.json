@@ -1,25 +1,20 @@
 {
-  // https://code.visualstudio.com/docs/cpp/c-cpp-properties-schema-reference
   "env": {
-    // use cmd `uname -r`
-    "kernel_module": "5.9.1-1-rt19-MANJARO"
+    "kernel_version": "5.9.1-1-rt19-MANJARO"
   },
   "configurations": [
     {
       "name": "Linux",
       "includePath": [
         "${workspaceFolder}/**",
-        // extra header locations
-        "/home/xuanc/文档/CodePratice/ELF/bcc/src/cc/",
-        "/usr/lib/modules/${env:kernel_module}/build/include/",
-        "/usr/lib/modules/${env:kernel_module}/build/arch/x86/include/",
-        "/usr/lib/modules/${env:kernel_module}/build/arch/x86/include/generated"
+        "/usr/lib/modules/${env:kernel_version}/build/include/",
+        "/usr/lib/modules/${env:kernel_version}/build/arch/x86/include/",
+        "/usr/lib/modules/${env:kernel_version}/build/arch/x86/include/generated"
       ],
-      "defines": ["_PID_", "_DEV_"],
+      "defines": [],
       "compilerPath": "/usr/bin/clang",
       "cStandard": "c17",
-      "cppStandard": "c++11",
-      "intelliSenseMode": "linux-clang-x64"
+      "cppStandard": "c++14"
     }
   ],
   "version": 4

@@ -9,6 +9,14 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
+/*
+#cgo CFLAGS: -I/usr/include/bcc/compat
+#cgo LDFLAGS: -lbcc
+#include <bcc/bcc_common.h>
+#include <bcc/libbpf.h>
+*/
+import "C"
+
 type Type uint8
 
 const (

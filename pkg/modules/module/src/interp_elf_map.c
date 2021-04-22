@@ -18,15 +18,18 @@ TDATA(interp_elf_map_event_type,  // elf map event type
       u64 size;                   // 映射的区域大小
       u64 off;                    // 映射的部分在文件中的偏移量
 
-      int64_t prot;    // 权限
-      int64_t type;    // 标志位
+      u64 vma_start;  // vma_start
+      u64 vma_end;    // vma_end
+      u64 vma_off;    // vma_off
+      u64 vma_flags;  // 标志位
+
       u64 total_size;  // 映射部分的总大小
       u64 inode;       // inode名
 );
 
 // 映射属性相关
 TDATA(interp_elf_map_prop_event_type,  // elf map event type
-      TEMPTY; // empty
+      TEMPTY;                          // empty
 );
 
 BPF_PERF_OUTPUT(interp_elf_map_events);
@@ -35,6 +38,27 @@ BPF_PERF_OUTPUT(interp_elf_map_prop_events);
 BPF_PERCPU_ARRAY(emap_array, struct interp_elf_map_event_type, 1);
 BPF_PERCPU_ARRAY(total_array, u32, 1);
 BPF_PERCPU_ARRAY(map_array, u32, 1);
+
+int kprobe__vma_link(struct pt_regs *ctx, struct mm_struct *mm,
+                     struct vm_area_struct *vma, struct vm_area_struct *prev) {
+    if ((bpf_get_current_pid_tgid() >> 32) != _PID_) {
+        return 0;
+    }
+
+    int zero = 0;
+
+    struct interp_elf_map_event_type *e = emap_array.lookup(&zero);
+    if (!e) {
+        return 0;
+    }
+    e->vma_start = (unsigned long)vma->vm_start;
+    e->vma_end   = (unsigned long)vma->vm_end;
+    e->vma_off   = (unsigned long)vma->vm_pgoff;
+    e->vma_flags = (unsigned long)vma->vm_flags;
+    emap_array.update(&zero, e);
+
+    return 0;
+}
 
 int kprobe__total_mapping_size(struct pt_regs *ctx, const struct elf_phdr *cmds,
                                int nr) {
@@ -77,8 +101,6 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     }
 
     event.shifted_addr = addr;
-    event.prot = (unsigned long)PT_REGS_PARM4(ctx);
-    event.type = (unsigned long)PT_REGS_PARM5(ctx);
     event.total_size = total_size;
     if (filep) {
         event.inode = (u64)filep->f_path.dentry->d_inode->i_ino;
@@ -95,7 +117,8 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     if (event.total_size) {
         struct interp_elf_map_prop_event_type e = {};
         init_tdata(&e);
-        interp_elf_map_prop_events.perf_submit((void *)ctx, (void *)&e, sizeof(e));
+        interp_elf_map_prop_events.perf_submit((void *)ctx, (void *)&e,
+                                               sizeof(e));
     }
 
     emap_array.update(&zero, &event);
@@ -116,7 +139,7 @@ int kretprobe__elf_map(struct pt_regs *ctx) {
     // arg check
     if (!(total_cnt_p = total_array.lookup(&zero)) ||  // elf self map check
         !IS_ELF_INTERRP_MAP(*total_cnt_p) ||
-        !(event = emap_array.lookup(&zero))) {   // prop valid check
+        !(event = emap_array.lookup(&zero))) {  // prop valid check
         bpf_trace_printk("elf_map_event check failed!");
         return 0;
     }
@@ -131,6 +154,7 @@ int kretprobe__elf_map(struct pt_regs *ctx) {
     event->actual_addr = addr;
     map_array.update(&zero, &map_count);
     init_tdata(event);
-    interp_elf_map_events.perf_submit((void *)ctx, (void *)event, sizeof(*event));
+    interp_elf_map_events.perf_submit((void *)ctx, (void *)event,
+                                      sizeof(*event));
     return 0;
 }

@@ -1,11 +1,12 @@
 #include "common.h"
 
-TDATA(alloc_bprm_event, 
-    char filename[256]; 
-    char fdpath[256]; char interp[256];
-    uint64_t cur_top_of_mem;
-    uint64_t rlim_cur; 
-    uint64_t rlim_max;
+TDATA(alloc_bprm_event,         // alloc_bprm_event
+      char filename[256];       // filename
+      char fdpath[256];         // fdpath
+      char interp[256];         // interp
+      uint64_t cur_top_of_mem;  // cur_top_of_mem
+      uint64_t rlim_cur;        // rlim_cur
+      uint64_t rlim_max;        // rlim_max
 );
 BPF_PERF_OUTPUT(call_event);
 BPF_PERCPU_ARRAY(alloc_bprm_array, struct alloc_bprm_event, 1);

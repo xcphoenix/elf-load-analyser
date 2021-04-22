@@ -1,10 +1,10 @@
 #include "common.h"
 
-TDATA(exec_event, 
-    int fd;
-    int flags;
-    char filename[256];
-); 
+TDATA(exec_event,          // exec_event
+      int fd;              // fd
+      int flags;           // flags
+      char filename[256];  // filename
+);
 BPF_PERF_OUTPUT(call_event);
 
 int kprobe__do_execveat_common(struct pt_regs* ctx, int fd,

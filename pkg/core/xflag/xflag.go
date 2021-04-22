@@ -79,7 +79,7 @@ func OpInject(val interface{}, name string, defaultVal interface{}, usage string
 	return set.OpInject(val, name, defaultVal, usage, handler)
 }
 
-// 添加 Flag
+// 添加 Flags
 func AddFlag(f *flag.FlagSet, xf *Set) {
 	flagValList := xf.xValList()
 	for _, xflag := range flagValList {
@@ -114,7 +114,7 @@ func AddFlag(f *flag.FlagSet, xf *Set) {
 	}
 }
 
-// 添加多个 Flag
+// 添加多个 Flags
 func AddFlags(f *flag.FlagSet, xfList ...*Set) {
 	if len(xfList) == 0 {
 		return
@@ -124,12 +124,12 @@ func AddFlags(f *flag.FlagSet, xfList ...*Set) {
 	}
 }
 
-// 在默认的 FlagSet 上添加 Flag
+// 在默认的 FlagSet 上添加 Flags
 func AddCmdFlags(xfList ...*Set) {
 	AddFlags(flag.CommandLine, xfList...)
 }
 
-// 解析 Flag
+// 解析 Flags
 func Parse(f *flag.FlagSet) {
 	state.RegisterHandler(state.AbnormalExit, func(err error) error {
 		var fe *flagError

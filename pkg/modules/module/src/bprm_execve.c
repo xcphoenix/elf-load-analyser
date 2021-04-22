@@ -2,8 +2,7 @@
 
 #include "common.h"
 
-TDATA(begin_new_exec_event_type, 
-); 
+TDATA(begin_new_exec_event_type, TEMPTY);
 BPF_PERF_OUTPUT(call_event);
 
 int kprobe__bprm_execve(struct pt_regs* ctx) {

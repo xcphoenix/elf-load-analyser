@@ -35,6 +35,7 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__elf_map", "elf_map", -1),
 			bcc.NewKretprobeEvent("kretprobe__elf_map", "elf_map", -1),
 			bcc.NewKprobeEvent("kprobe__total_mapping_size", "total_mapping_size", -1),
+			bcc.NewKprobeEvent("kprobe__vma_link", "vma_link", -1),
 		},
 		LazyInit: func(_ *modules.MonitorModule, param bcc.PreParam) bool {
 			return !param.IsDyn

@@ -84,6 +84,7 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__set_brk", "set_brk", -1),
 			bcc.NewKretprobeEvent("kretprobe__arch_mmap_rnd", "arch_mmap_rnd", -1),
 			bcc.NewKprobeEvent("kprobe__total_mapping_size", "total_mapping_size", -1),
+			bcc.NewKprobeEvent("kprobe__vma_link", "vma_link", -1),
 		},
 		LazyInit: func(mm *modules.MonitorModule, param bcc.PreParam) bool {
 			mm.Source = strings.ReplaceAll(mm.Source, "_ISDYN_", helper.IfElse(param.IsDyn, "1", "0").(string))

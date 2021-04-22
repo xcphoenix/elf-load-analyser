@@ -1,11 +1,11 @@
 #ifndef XC_COMMON_H
 #define XC_COMMON_H
 
+#include <linux/binfmts.h>
 #include <linux/elf.h>
-#include <uapi/linux/ptrace.h>
 #include <linux/fs.h>
 #include <linux/sched.h>
-#include <linux/binfmts.h>
+#include <uapi/linux/ptrace.h>
 
 #include "_dev.h"
 

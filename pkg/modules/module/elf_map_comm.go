@@ -15,8 +15,11 @@ type commonElfMapEventType struct {
 	ActualAddr  uint64
 	Size        uint64
 	Off         uint64
-	Prot        int64
-	Type        int64
+
+	VmaStart uint64
+	VmaEnd   uint64
+	VmaOff   uint64
+	VmaFlags uint64
 
 	TotalSize uint64
 	INode     uint64
@@ -36,12 +39,13 @@ func (e commonElfMapEventType) Render() *data.AnalyseData {
 				fmt.Sprintf("当前段偏移：0X%X", e.Off),
 			),
 			form.NewList(
-				fmt.Sprintf("VMA权限: 0X%X", e.Prot),
-				fmt.Sprintf("VMA类型: 0x%X", e.Type),
+				fmt.Sprintf("VMA地址: [0x%X, 0x%X]", e.VmaStart, e.VmaStart+e.Size),
+				fmt.Sprintf("VMA类型: 0x%X, 在文件中的偏移(若存在): 0x%X", e.VmaFlags, e.Off),
 			),
 		)
 		event := virtualm.MapVmaEvent{
-			NewVma: virtualm.BuildVma(e.ActualAddr, e.ActualAddr+e.Size, uint(e.Prot), uint(e.Type), e.Off, xfs.INodePath(e.INode)),
+			// ps: 第一次 elf_map 会先映射整体，所以不能直接用 v.VmaEnd
+			NewVma: virtualm.BuildVma(e.VmaStart, e.VmaStart+e.Size, e.VmaFlags, e.Off, xfs.INodePath(e.INode)),
 		}
 		aData.PutExtra(virtualm.VmaFlag, event)
 		return result

@@ -14,18 +14,18 @@ import (
 )
 
 const (
-	EmptyMap = ""
-	HeapMap  = "[heap]"
-	StackMap = "[stack]"
-	VvarMap  = "[vvar]"
-	Vsyscall = "[vsyscall]"
+	AnonymousMap = ""
+	HeapMap      = "[heap]"
+	StackMap     = "[stack]"
+	VvarMap      = "[vvar]"
+	Vsyscall     = "[vsyscall]"
 )
 
 const (
 	xvmRead  = 0x1
 	xvmWrite = 0x2
 	xvmExec  = 0x4
-	xvmShare = 0x1
+	xvmShare = 0x80
 )
 
 type vmaClass uint8
@@ -40,43 +40,42 @@ type Vma struct {
 	Class      vmaClass `json:"kind"`
 	Start      uint64   `json:"start"`
 	End        uint64   `json:"end"`
-	Prot       uint     `json:"prot"`
-	Flag       uint     `json:"flag"`
+	Flags      uint64   `json:"flag"`
 	Offset     uint64   `json:"offset"`
 	MappedFile string   `json:"file"`
 	Attr       string   `json:"attr"`
 }
 
-// BuildVma 创建 VMA, mappedFile 可选值：文件名称、EmptyMap、HeapMap、StackMap、VvarMap、Vsyscall
-func BuildVma(start uint64, end uint64, prot uint, flag uint, offset uint64, mappedFile string) Vma {
+// BuildVma 创建 VMA, mappedFile 可选值：文件名称、AnonymousMap、HeapMap、StackMap、VvarMap、Vsyscall
+func BuildVma(start uint64, end uint64, flag uint64, offset uint64, mappedFile string) Vma {
 	v := Vma{
 		Class: mapClass, Start: start, End: end,
-		Prot: prot, Flag: flag, Offset: offset,
+		Flags: flag, Offset: offset,
 		MappedFile: mappedFile,
 	}
-	v.Attr = v.ProtDesc()
+	v.Attr = v.AttrSerialize()
 	return v
 }
 
-// ProtDesc 获取权限
-func (v Vma) ProtDesc() string {
+// AttrSerialize 获取权限
+func (v Vma) AttrSerialize() string {
 	var buf bytes.Buffer
-	if v.Prot&xvmRead != 0 {
+	if v.Flags&xvmRead != 0 {
 		buf.WriteRune('r')
 	} else {
 		buf.WriteRune('-')
 	}
-	if v.Prot&xvmWrite != 0 {
+	if v.Flags&xvmWrite != 0 {
 		buf.WriteRune('w')
 	} else {
 		buf.WriteRune('-')
 	}
-	if v.Prot&xvmExec != 0 {
+	if v.Flags&xvmExec != 0 {
 		buf.WriteRune('x')
 	} else {
 		buf.WriteRune('-')
 	}
-	if v.Flag&xvmShare != 0 {
+	if v.Flags&xvmShare != 0 {
 		buf.WriteRune('s')
 	} else {
 		buf.WriteRune('p')
@@ -86,13 +85,7 @@ func (v Vma) ProtDesc() string {
 
 // Show 序列化显示，仿 /proc/xxx/maps
 func (v Vma) Show() string {
-	return fmt.Sprintf("%x-%x %s %08x %s\n", v.Start, v.End, v.ProtDesc(), v.Offset, v.MappedFile)
-}
-
-// BuildVmaData 创建 VMA 数据集，echarts 数据是多维数组：X轴、Y轴、其他维度
-func BuildVmaData(vma Vma) [][]interface{} {
-	size := flatAddr(vma.End - vma.Start)
-	return [][]interface{}{{0, size, vma}}
+	return fmt.Sprintf("%x-%x %s %08x %s\n", v.Start, v.End, v.AttrSerialize(), v.Offset, v.MappedFile)
 }
 
 type vmaList []Vma
