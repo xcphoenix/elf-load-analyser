@@ -113,7 +113,7 @@ func (p *PerfResolveMm) IsEnd() bool {
 }
 
 func readyNotify(ch chan<- *data.AnalyseData) {
-	ch <- data.NewErrAnalyseData("", data.Invalid, "")
+	ch <- data.NewErrAnalyseData(data.Invalid, "")
 }
 
 //nolint:funlen
@@ -258,7 +258,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(data.NewErrAnalyseData("", data.Invalid, "")),
+		Send: reflect.ValueOf(data.NewErrAnalyseData(data.Invalid, "")),
 	}
 	if idx := chCnt + 1; idx < cnt {
 		cases[idx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}

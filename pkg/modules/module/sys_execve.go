@@ -28,7 +28,7 @@ type sysExecveRetEvent struct {
 
 func (s sysExecveRetEvent) Render() *data.AnalyseData {
 	if s.Ret != 0 {
-		return data.NewErrAnalyseData("", data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
+		return data.NewErrAnalyseData(data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
 	}
 	return data.NewAnalyseData(form.NewMarkdown("execve success"))
 }

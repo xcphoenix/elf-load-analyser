@@ -20,6 +20,7 @@ const (
 	Success  = Status(iota) // success
 	RunError                // exec runtime error, such as kernel function return failed
 	Invalid
+	Bug
 )
 
 var status2Desc = map[Status]string{
@@ -82,14 +83,14 @@ func NewListAnalyseData(id string, name string, dataList []*AnalyseData) *Analys
 	}
 }
 
-func NewErrAnalyseData(name string, s Status, desc string) *AnalyseData {
+func NewErrAnalyseData(s Status, desc string) *AnalyseData {
 	if s == Success {
 		panic("error status cannot be OK")
 	}
 	if len(desc) == 0 {
 		desc = statusDesc(s)
 	}
-	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Name: name, Extra: map[string]interface{}{}}
+	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Extra: map[string]interface{}{}}
 }
 
 func (a *AnalyseData) IsLazy() bool {

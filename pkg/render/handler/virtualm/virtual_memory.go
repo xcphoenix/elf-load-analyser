@@ -248,7 +248,9 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 		addrMap[vma.End] = addrCnt
 		vmBar.AddYAxis(vma.MappedFile, vmData, opts...)
 	}
+
 	vmBar.Overlap(vm.renderAddr(addrMap))
+
 	fn := fmt.Sprintf(`(function () {
         let targetType = 'scatter';
         let posOffset = [-350, 0];
@@ -264,6 +266,7 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
         myChart_%[1]s.setOption(option_%[1]s);
       })();`, vmBar.ChartID)
 	vmBar.AddJSFuncs(fn)
+
 	return vmBar
 }
 

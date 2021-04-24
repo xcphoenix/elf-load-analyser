@@ -7,6 +7,7 @@ import (
 // DefaultUprobePid default pid for all process
 const DefaultUprobePid = -1
 
+// PlaceholderPid 仅占位，后面会被替换为目标进程的 pid
 const PlaceholderPid = -2
 
 type UprobeEvent struct {
