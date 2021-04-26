@@ -54,34 +54,32 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 		monitor := monitor
 		idx := idx
 		go func() {
-			defer func() {
-				mutex.Unlock()
-				wg.Done()
-			}()
 			monitor.PreProcessing(param)
 			m := monitor.DoAction()
 			factory[idx].Resolve(waitMonitorCtx, m, ch)
 			mutex.Lock()
 			m.Close()
+
+			mutex.Unlock()
+			wg.Done()
 		}()
 	}
 
 	// 根模块处理
 	go func() {
-		defer func() {
-			mutex.Unlock()
-			// 根模块处理完毕，关闭以通知其他模块停止工作，
-			waitCancelFunc()
-			// 等待其他模块处理
-			wg.Wait()
-			// 处理结束，关闭
-			rootCancelFunc()
-		}()
 		lastMonitor.PreProcessing(param)
 		m := lastMonitor.DoAction()
 		factory[lastIdx].Resolve(rootCtx, m, ch)
 		mutex.Lock()
 		m.Close()
+
+		mutex.Unlock()
+		// 根模块处理完毕，关闭以通知其他模块停止工作，
+		waitCancelFunc()
+		// 等待其他模块处理
+		wg.Wait()
+		// 处理结束，关闭
+		rootCancelFunc()
 	}()
 
 	// 等待所有模块加载完毕
