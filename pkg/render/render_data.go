@@ -95,7 +95,7 @@ func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
 		analyseData := analyseData
 		go func() {
 			defer wg.Done()
-			analyseData.DoLazyFunc()
+			analyseData.WaitReady()
 		}()
 	}
 

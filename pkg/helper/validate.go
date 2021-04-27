@@ -42,6 +42,21 @@ func Validate(expected, actual interface{},
 	}
 }
 
+func IsNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	v := reflect.ValueOf(i)
+	if v.Kind() == reflect.Ptr {
+		return v.IsNil()
+	}
+	return false
+}
+
+func IsNotNil(i interface{}) bool {
+	return !IsNil(i)
+}
+
 func isNotFunc(val interface{}) bool {
 	if val == nil {
 		return false

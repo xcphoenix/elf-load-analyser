@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"strconv"
 	"time"
 )
@@ -13,37 +14,49 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 	return []byte(stamp), nil
 }
 
-// Status Result status
-type Status int8
-
-const (
-	Success  = Status(iota) // success
-	RunError                // exec runtime error, such as kernel function return failed
-	Invalid
-	Bug
-)
-
-var status2Desc = map[Status]string{
-	Success:  "OK",
-	RunError: "happened error at runtime",
-}
-
 type AnalyseData struct {
-	XTime    JSONTime                         `json:"time"`
-	DataList []*AnalyseData                   `json:"dataList"`
-	ID       string                           `json:"id"`
-	Name     string                           `json:"name"`
-	Desc     string                           `json:"desc"`
-	Data     *wrapContent                     `json:"data"`
-	Extra    map[string]interface{}           `json:"extra"`
-	Status   Status                           `json:"status"`
-	XType    Type                             `json:"type"`
+	XTime    JSONTime               `json:"time"`
+	DataList []*AnalyseData         `json:"dataList"`
+	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
+	Desc     string                 `json:"desc"`
+	Data     *wrapContent           `json:"data"`
+	Extra    map[string]interface{} `json:"extra"`
+	Status   Status                 `json:"status"`
+	XType    Type                   `json:"type"`
+
+	initChan chan struct{}
 	lazyFunc func(aData *AnalyseData) Content // 延迟处理函数, 要求返回 Content，避免忘记返回实际的数据内容
 }
 
+func newAnalyseData(status Status, desc string, content Content, dataList []*AnalyseData, lazyFunc func(aData *AnalyseData) Content) *AnalyseData {
+	a := &AnalyseData{
+		XTime:    JSONTime(time.Now()),
+		DataList: dataList,
+		Desc:     status.String(),
+		Status:   status,
+		lazyFunc: lazyFunc,
+		Extra:    map[string]interface{}{},
+		initChan: make(chan struct{}),
+	}
+	if len(desc) > 0 {
+		a.Desc = desc
+	}
+	if helper.IsNotNil(content) {
+		a.Data = newWrapContent(content)
+		a.XType = content.Class()
+	}
+	if lazyFunc == nil {
+		close(a.initChan)
+	} else {
+		go a.doLazyFunc()
+	}
+	return a
+}
+
 func (a AnalyseData) String() string {
-	return strconv.Quote(fmt.Sprintf("AnalyseData{ID: %s, Name: %s, Status: %s, Desc: %s, "+
-		"XTime: %v, Data: %v, DataList: %v, Extra: %v}", a.ID, a.Name, statusDesc(a.Status), a.Desc,
+	return strconv.Quote(fmt.Sprintf("AnalyseData{ID: %s, Name: %s, Status: %s, String: %s, "+
+		"XTime: %v, Data: %v, DataList: %v, Extra: %v}", a.ID, a.Name, a.Status, a.Desc,
 		a.XTime, a.Data, a.DataList, a.Extra))
 }
 
@@ -51,59 +64,28 @@ func (a AnalyseData) String() string {
 // name: data name, if name == "" and use advantage_module, will be set `monitor name`@`event name` after rendered;
 // builder: cannot be null
 func NewAnalyseData(content Content) *AnalyseData {
-	return &AnalyseData{
-		Status: Success,
-		XType:  content.Class(),
-		Data:   newWrapContent(content),
-		Desc:   statusDesc(Success),
-		XTime:  JSONTime(time.Now()),
-		Extra:  map[string]interface{}{},
-	}
+	return newAnalyseData(OkStatus, "", content, nil, nil)
 }
 
 func NewLazyAnalyseData(lazyFunc func(aData *AnalyseData) Content) *AnalyseData {
-	return &AnalyseData{
-		Status:   Success,
-		lazyFunc: lazyFunc,
-		Desc:     statusDesc(Success),
-		XTime:    JSONTime(time.Now()),
-		Extra:    map[string]interface{}{},
-	}
+	return newAnalyseData(OkStatus, "", nil, nil, lazyFunc)
 }
 
 func NewListAnalyseData(id string, name string, dataList []*AnalyseData) *AnalyseData {
-	return &AnalyseData{
-		ID:       id,
-		Name:     name,
-		Status:   Success,
-		DataList: dataList,
-		Desc:     statusDesc(Success),
-		XTime:    JSONTime(time.Now()),
-		Extra:    map[string]interface{}{},
-	}
+	return newAnalyseData(OkStatus, "", nil, dataList, nil).WithID(id).WithName(name)
 }
 
 func NewErrAnalyseData(s Status, desc string) *AnalyseData {
-	if s == Success {
-		panic("error status cannot be OK")
-	}
-	if len(desc) == 0 {
-		desc = statusDesc(s)
-	}
-	return &AnalyseData{Status: s, Desc: desc, XTime: JSONTime(time.Now()), Extra: map[string]interface{}{}}
+	return newAnalyseData(s, desc, nil, nil, nil)
 }
 
-func (a *AnalyseData) IsLazy() bool {
-	return a.lazyFunc != nil
-}
-
-func (a *AnalyseData) DoLazyFunc() {
-	if a.lazyFunc == nil {
-		return
+func (a *AnalyseData) WaitReady() {
+	for {
+		select {
+		case <-a.initChan:
+			return
+		}
 	}
-	c := a.lazyFunc(a)
-	a.XType = c.Class()
-	a.Data = newWrapContent(c)
 }
 
 func (a *AnalyseData) Change(changer func(set ContentSet) Content) {
@@ -135,10 +117,14 @@ func (a *AnalyseData) ExtraByKey(k string) (interface{}, bool) {
 	return v, ok
 }
 
-func statusDesc(s Status) string {
-	res, ok := status2Desc[s]
-	if !ok {
-		return "Unknown Status"
+func (a *AnalyseData) doLazyFunc() {
+	if a.lazyFunc == nil {
+		return
 	}
-	return res
+	c := a.lazyFunc(a)
+	a.XType = c.Class()
+	a.Data = newWrapContent(c)
+
+	a.lazyFunc = nil
+	close(a.initChan)
 }
