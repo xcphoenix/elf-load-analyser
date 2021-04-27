@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	//_ "net/http/pprof"
 
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
@@ -10,6 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"net"
 	"net/http"
 	"strconv"
@@ -35,7 +35,7 @@ func VisualAnalyseData(p *factory.Pool) {
 	go startWebService(renderedData, reqHandlers)
 }
 
-func startWebService(d []*data.AnalyseData, reqHandlers []render.ReqHandler) {
+func startWebService(d []*data.AnalyseData, reqHandlers []plugin.ReqHandler) {
 	analyseDataCenter = d
 	http.Handle("/", FrontedService())
 	http.HandleFunc("/api/report", AnalyseReportService)

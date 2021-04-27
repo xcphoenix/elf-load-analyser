@@ -9,7 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
-	"github.com/xcphoenix/elf-load-analyser/pkg/render/xelf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xelf"
 )
 
 type ElfRender struct {

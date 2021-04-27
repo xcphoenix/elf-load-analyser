@@ -8,7 +8,8 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 )
 
@@ -31,7 +32,7 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 	// exec_mmap
 	result.Combine(form.NewMarkdown("映射二进制参数内存结构体到当前进程中"))
 	if a.VmaCnt != 1 {
-		return data.NewErrAnalyseData(data.Bug, "数据异常！")
+		return data.NewErrAnalyseData(data.BugStatus, "数据异常！")
 	}
 	result.Combine(form.NewList(
 		fmt.Sprintf("Vma [0x%x, 0x%x]", a.VmaStart, a.VmaEnd),
@@ -45,7 +46,7 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "begin_new_exec",
 		Source:  beginNewExecSrc,
 		Events: []*bcc.Event{

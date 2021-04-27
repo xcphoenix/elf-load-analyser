@@ -3,8 +3,8 @@ package xelf
 import (
 	"debug/elf"
 	"fmt"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"os"
 	"testing"
 )
@@ -24,7 +24,7 @@ func TestBuildRela(t *testing.T) {
 	assert.Equal(t, 3, len(textSra.Rels))
 	assert.Equal(t, uint64(0x25), textSra.Rels[0].Offset)
 	assert.Equal(t, "shared", textSra.Rels[0].Value)
-	f.Close()
+	_ = f.Close()
 }
 
 func TestBuildRela_dyn(t *testing.T) {

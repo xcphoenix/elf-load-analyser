@@ -5,7 +5,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
-	"github.com/xcphoenix/elf-load-analyser/pkg/render"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,23 +14,23 @@ import (
 const VmaFlag = "_VMA_"
 
 func init() {
-	render.RegisterHandler("vm_render", NewVMShowDataHandler(), 0x10)
+	plugin.RegisterHandler(newVMShowDataHandler(), 0x10)
 }
 
-type VMShowDataHandler struct {
+type vmShowDataHandler struct {
 	htmlCache map[string][]byte
 }
 
-func NewVMShowDataHandler() *VMShowDataHandler {
-	return &VMShowDataHandler{htmlCache: map[string][]byte{}}
+func newVMShowDataHandler() *vmShowDataHandler {
+	return &vmShowDataHandler{htmlCache: map[string][]byte{}}
 }
 
-func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.ReqHandler {
+func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.AnalyseData, []plugin.ReqHandler) {
 	vm := newVirtualMemory()
 	const apiPrefix = "/vm/model/"
 	cnt := 0
 
-	var vmHandlers []render.ReqHandler
+	var vmHandlers []plugin.ReqHandler
 	for _, analyseData := range dataCollection {
 		if val, ok := analyseData.ExtraByKey(VmaFlag); ok {
 			event, ok := val.(VMEvent)
@@ -40,7 +40,7 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			diff := vm.ApplyEvent(event)
 			url := apiPrefix + strconv.Itoa(cnt)
 			bar := vm.ChartsRender("/assets/")
-			vmHandlers = append(vmHandlers, render.BuildReqHandler(url, func(w http.ResponseWriter, r *http.Request) {
+			vmHandlers = append(vmHandlers, plugin.BuildReqHandler(url, func(w http.ResponseWriter, r *http.Request) {
 				if _, ok := v.htmlCache[url]; !ok {
 					var buf bytes.Buffer
 					err := bar.Render(&buf)
@@ -66,5 +66,5 @@ func (v VMShowDataHandler) Handle(dataCollection []*data.AnalyseData) []render.R
 			})
 		}
 	}
-	return append(vmHandlers, BuildAssertReqHandler()...)
+	return dataCollection, append(vmHandlers, BuildAssertReqHandler()...)
 }

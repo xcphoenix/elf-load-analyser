@@ -80,12 +80,7 @@ func NewErrAnalyseData(s Status, desc string) *AnalyseData {
 }
 
 func (a *AnalyseData) WaitReady() {
-	for {
-		select {
-		case <-a.initChan:
-			return
-		}
-	}
+	<-a.initChan
 }
 
 func (a *AnalyseData) Change(changer func(set ContentSet) Content) {

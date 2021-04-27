@@ -4,7 +4,8 @@ import (
 	_ "embed" // for embed bcc source
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
 
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
@@ -28,7 +29,7 @@ type sysExecveRetEvent struct {
 
 func (s sysExecveRetEvent) Render() *data.AnalyseData {
 	if s.Ret != 0 {
-		return data.NewErrAnalyseData(data.RunError, fmt.Sprintf("execve failed, return %d", s.Ret))
+		return data.NewErrAnalyseData(data.RunErrStatus, fmt.Sprintf("execve failed, return %d", s.Ret))
 	}
 	return data.NewAnalyseData(form.NewMarkdown("execve success"))
 }
@@ -39,7 +40,7 @@ var execveSource string
 func init() {
 	entry := "call_event"
 	fnName := bpf.GetSyscallFnName("execve")
-	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "syscall:execve",
 		Source:  execveSource,
 		Events: []*bcc.Event{

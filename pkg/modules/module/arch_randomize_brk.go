@@ -8,7 +8,8 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
 )
 
@@ -42,7 +43,7 @@ func (a archRandomizeBrkEvent) Render() *data.AnalyseData {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "heap-scope",
 		Source:  archRandomizeBrkSource,
 		Events: []*bcc.Event{

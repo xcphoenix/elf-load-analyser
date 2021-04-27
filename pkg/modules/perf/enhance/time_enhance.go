@@ -3,7 +3,7 @@ package enhance
 import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"strconv"
 	"time"
 )
@@ -14,8 +14,9 @@ const (
 	timeEnhancerName = "TimeAmend"
 )
 
+// Ps: 只有手动使用了 TimeEventResult 才会执行这个 init
 func init() {
-	modules.RegisteredEnhancer(timeEnhancerName, &timeEnhancer{})
+	perf.RegisteredEnhancer(timeEnhancerName, &timeEnhancer{})
 }
 
 // TimeEventResult EventResult with env boot ns, coordinate with enhance.timeEnhancer
@@ -26,13 +27,13 @@ type TimeEventResult struct {
 // timeEnhancer 时间修正处理器
 type timeEnhancer struct{}
 
-func (t timeEnhancer) PreHandle(tCtx *modules.TableCtx) {
+func (t timeEnhancer) PreHandle(tCtx *perf.TableCtx) {
 	if !tCtx.IsMark(StartMark) {
 		waitNs()
 	}
 }
 
-func (t timeEnhancer) AfterHandle(tCtx *modules.TableCtx,
+func (t timeEnhancer) AfterHandle(tCtx *perf.TableCtx,
 	aData *data.AnalyseData, err error) (*data.AnalyseData, error) {
 	if err != nil {
 		return aData, err

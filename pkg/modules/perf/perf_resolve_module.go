@@ -1,8 +1,9 @@
-package modules
+package perf
 
 import (
 	"context"
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"reflect"
 	"strings"
 	"sync"
@@ -27,7 +28,7 @@ type TableHandler func(data []byte) (*data.AnalyseData, error)
 // TableCtx table context
 type TableCtx struct {
 	Name    string
-	Monitor MonitorModule
+	Monitor modules.MonitorModule
 
 	loop    bool
 	channel chan []byte
@@ -48,15 +49,15 @@ type Enhancer interface {
 }
 
 // PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
-type PerfResolveMm struct {
-	*MonitorModule
+type ResolveMm struct {
+	*modules.MonitorModule
 	tableIds  []string
 	table2Ctx map[string]*TableCtx
 }
 
 // NewPerfResolveMm 创建 Perf 模块
-func NewPerfResolveMm(m *MonitorModule) *PerfResolveMm {
-	perfMm := &PerfResolveMm{
+func NewPerfResolveMm(m *modules.MonitorModule) *ResolveMm {
+	perfMm := &ResolveMm{
 		MonitorModule: m,
 		tableIds:      []string{},
 		table2Ctx:     map[string]*TableCtx{},
@@ -66,17 +67,17 @@ func NewPerfResolveMm(m *MonitorModule) *PerfResolveMm {
 }
 
 // Mm 返回实际的模块
-func (p *PerfResolveMm) Mm() *MonitorModule {
+func (p *ResolveMm) Mm() *modules.MonitorModule {
 	return p.MonitorModule
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
-func (p *PerfResolveMm) RegisterOnceTable(name string, handler TableHandler) {
+func (p *ResolveMm) RegisterOnceTable(name string, handler TableHandler) {
 	p.RegisterTable(name, false, handler)
 }
 
 // RegisterTable 注册 table, 若 loop 为 true，返回对应的 chan，否则返回 nil
-func (p *PerfResolveMm) RegisterTable(name string, loop bool, handler TableHandler) chan<- []byte {
+func (p *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) chan<- []byte {
 	name = strings.TrimSpace(name)
 	if handler == nil || len(name) == 0 {
 		return nil
@@ -98,7 +99,7 @@ func (p *PerfResolveMm) RegisterTable(name string, loop bool, handler TableHandl
 }
 
 // SetMark 设置标记
-func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
+func (p *ResolveMm) SetMark(name string, mk string) *ResolveMm {
 	ctx, ok := p.table2Ctx[name]
 	if !ok {
 		return p
@@ -108,17 +109,17 @@ func (p *PerfResolveMm) SetMark(name string, mk string) *PerfResolveMm {
 }
 
 // IsEnd 模块是否被设置为终止模块
-func (p *PerfResolveMm) IsEnd() bool {
+func (p *ResolveMm) IsEnd() bool {
 	return p.MonitorModule.IsEnd
 }
 
 func readyNotify(ch chan<- *data.AnalyseData) {
-	ch <- data.NewErrAnalyseData(data.Invalid, "")
+	ch <- data.NewErrAnalyseData(data.InvalidStatus, "")
 }
 
 //nolint:funlen
 // Resolve 模块的解析策略
-func (p *PerfResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
+func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
 	if len(p.tableIds) == 0 {
 		log.Warnf("Monitor %q without event", p.Monitor)
 		readyNotify(ch)
@@ -258,7 +259,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(data.NewErrAnalyseData(data.Invalid, "")),
+		Send: reflect.ValueOf(data.NewErrAnalyseData(data.InvalidStatus, "")),
 	}
 	if idx := chCnt + 1; idx < cnt {
 		cases[idx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}
@@ -266,7 +267,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	return cases, tableNames
 }
 
-func initPerMaps(m *bpf.Module, p *PerfResolveMm) []*bpf.PerfMap {
+func initPerMaps(m *bpf.Module, p *ResolveMm) []*bpf.PerfMap {
 	perI := 0
 	perfMaps := make([]*bpf.PerfMap, len(p.tableIds))
 	for _, table := range p.tableIds {

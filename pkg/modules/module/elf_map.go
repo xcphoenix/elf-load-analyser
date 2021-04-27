@@ -3,7 +3,8 @@ package module
 import (
 	_ "embed" // for embed bcc source
 	"fmt"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
 	"strconv"
 	"strings"
 
@@ -75,7 +76,7 @@ func (e elfMapPropEventType) Render() *data.AnalyseData {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "elf_map",
 		Source:  elfMapSource,
 		Events: []*bcc.Event{

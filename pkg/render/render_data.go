@@ -3,8 +3,8 @@ package render
 import (
 	"debug/elf"
 	"errors"
-	"net/http"
-	"sort"
+	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/handler" // import plugin handlers
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
@@ -15,55 +15,6 @@ import (
 )
 
 var dataCenter = make([]*data.AnalyseData, 3)
-var dataHandlerList orderedDataRenderList
-
-// RegisterHandler 注册数据处理器
-func RegisterHandler(name string, d DataRenderHandler, order int) {
-	dataHandlerList = append(dataHandlerList, orderedDataRender{
-		render: d,
-		order:  order,
-		name:   name,
-	})
-}
-
-type orderedDataRender struct {
-	render DataRenderHandler
-	order  int
-	name   string
-}
-
-type orderedDataRenderList []orderedDataRender
-
-func (o orderedDataRenderList) Len() int {
-	return len(o)
-}
-
-func (o orderedDataRenderList) Less(i, j int) bool {
-	if o[i].order != o[j].order {
-		return o[i].order > o[j].order
-	}
-	return o[i].name > o[j].name
-}
-
-func (o orderedDataRenderList) Swap(i, j int) {
-	o[i], o[j] = o[j], o[i]
-}
-
-// DataRenderHandler 渲染数据处理器
-type DataRenderHandler interface {
-	Handle(dataCollection []*data.AnalyseData) []ReqHandler
-}
-
-// ReqHandler 请求处理器
-type ReqHandler struct {
-	Pattern string
-	Handler func(http.ResponseWriter, *http.Request)
-}
-
-// BuildReqHandler 创建请求处理器
-func BuildReqHandler(pattern string, handler func(http.ResponseWriter, *http.Request)) ReqHandler {
-	return ReqHandler{Pattern: pattern, Handler: handler}
-}
 
 // PreAnalyse 环境预分析
 func PreAnalyse(param *bcc.PreParam) {
@@ -86,7 +37,7 @@ func PreAnalyse(param *bcc.PreParam) {
 }
 
 // DoAnalyse 执行数据分析
-func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
+func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
 	dataList := p.Data()
 
 	var wg sync.WaitGroup
@@ -100,11 +51,13 @@ func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []ReqHandler) {
 	}
 
 	wg.Wait()
-	var reqHandlers []ReqHandler
-	sort.Sort(dataHandlerList)
-	for _, handler := range dataHandlerList {
-		tmpHandlers := handler.render.Handle(dataList)
-		reqHandlers = append(reqHandlers, tmpHandlers...)
+	var reqHandlers []plugin.ReqHandler
+	for _, handler := range plugin.RenderPlugins() {
+		modDataList, tmpHandlers := handler.Handle(dataList)
+		dataList = modDataList
+		if len(tmpHandlers) > 0 {
+			reqHandlers = append(reqHandlers, tmpHandlers...)
+		}
 	}
 
 	d, err := doRender(NewAnalyseRender(dataList))

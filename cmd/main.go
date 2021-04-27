@@ -13,7 +13,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/env"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
-	_ "github.com/xcphoenix/elf-load-analyser/pkg/modules/module"
+	_ "github.com/xcphoenix/elf-load-analyser/pkg/modules/module" // import modules
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 	"github.com/xcphoenix/elf-load-analyser/pkg/web"
 )

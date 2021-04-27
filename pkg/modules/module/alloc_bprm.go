@@ -8,7 +8,8 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
 )
 
 // about stack 512byte limit,
@@ -36,7 +37,7 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 }
 
 func init() {
-	m := modules.NewPerfResolveMm(&modules.MonitorModule{
+	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "alloc_bprm",
 		Source:  allowBprmSource,
 		Events: []*bcc.Event{
