@@ -8,7 +8,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
 )
 
 //go:embed src/interp_elf_map.c.k

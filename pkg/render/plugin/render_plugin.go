@@ -9,8 +9,8 @@ import (
 var pluginList []RenderPlugin
 var plugin2Priority = make(map[int]int)
 
-// RegisterHandler 注册数据处理器
-func RegisterHandler(d RenderPlugin, priority int) {
+// RegisterPlugin 注册数据处理器
+func RegisterPlugin(d RenderPlugin, priority int) {
 	idx := len(pluginList)
 
 	pluginList = append(pluginList, d)

@@ -14,7 +14,7 @@ import (
 const VmaFlag = "_VMA_"
 
 func init() {
-	plugin.RegisterHandler(newVMShowDataHandler(), 0x10)
+	plugin.RegisterPlugin(newVMShowDataHandler(), 0x100)
 }
 
 type vmShowDataHandler struct {

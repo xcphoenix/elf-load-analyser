@@ -9,7 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
 )
 
 // about stack 512byte limit,

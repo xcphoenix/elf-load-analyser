@@ -14,15 +14,6 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
-var (
-	mutex              sync.Once
-	registeredEnhancer = make(map[string]Enhancer)
-)
-
-func RegisteredEnhancer(name string, e Enhancer) {
-	registeredEnhancer[name] = e
-}
-
 type TableHandler func(data []byte) (*data.AnalyseData, error)
 
 // TableCtx table context
@@ -36,16 +27,13 @@ type TableCtx struct {
 	mark    map[string]struct{}
 }
 
-// IsMark 返回字段是否被标记
-func (t *TableCtx) IsMark(mk string) bool {
-	_, ok := t.mark[mk]
-	return ok
-}
-
-// Enhancer 增强器，只能做一些简单的流程协调操作
-type Enhancer interface {
-	PreHandle(tCtx *TableCtx)
-	AfterHandle(tCtx *TableCtx, aData *data.AnalyseData, err error) (*data.AnalyseData, error)
+func (t TableCtx) IterOperator(op func(string)) {
+	if len(t.mark) == 0 {
+		return
+	}
+	for m := range t.mark {
+		op(m)
+	}
 }
 
 // PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
@@ -113,10 +101,6 @@ func (p *ResolveMm) IsEnd() bool {
 	return p.MonitorModule.IsEnd
 }
 
-func readyNotify(ch chan<- *data.AnalyseData) {
-	ch <- data.NewErrAnalyseData(data.InvalidStatus, "")
-}
-
 //nolint:funlen
 // Resolve 模块的解析策略
 func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
@@ -125,7 +109,6 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 		readyNotify(ch)
 		return
 	}
-	showRegisteredEnhancer()
 
 	perfMaps := initPerMaps(m, p)
 	finish := make(chan struct{})
@@ -185,6 +168,10 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	log.Infof("Monitor %s stop", p.Monitor)
 }
 
+func readyNotify(ch chan<- *data.AnalyseData) {
+	ch <- data.NewErrAnalyseData(data.InvalidStatus, "")
+}
+
 func blockTaskTimeout(name string, task func(), timeout time.Duration) {
 	ch := make(chan struct{})
 	go func() {
@@ -200,44 +187,24 @@ func blockTaskTimeout(name string, task func(), timeout time.Duration) {
 	}
 }
 
-func showRegisteredEnhancer() {
-	if log.ConfigLevel() == log.DLevel {
-		mutex.Do(func() {
-			l := len(registeredEnhancer)
-			if l == 0 {
-				return
-			}
-			enhancers, idx := make([]string, l), 0
-			for s := range registeredEnhancer {
-				enhancers[idx] = s
-				idx++
-			}
-			log.Debugf("Enhancer %v be registered", enhancers)
-		})
-	}
-}
-
 func dataProcessing(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
-	for name, handler := range registeredEnhancer {
-		log.Debugf("%s pre handle for %q", name, tableCtx.Name)
-		handler.PreHandle(tableCtx)
-	}
-
 	log.Infof("Resolve %q...", tableCtx.Name)
 	analyseData, err := tableCtx.handler(d)
 	log.Debugf("Receive data from %q, %v", tableCtx.Name, analyseData)
 
-	for name, handler := range registeredEnhancer {
-		log.Debugf("%s after handle for %q", name, tableCtx.Name)
-		analyseData, err = handler.AfterHandle(tableCtx, analyseData, err)
-	}
-
 	if err != nil {
 		log.Warnf("Event %q resolve error: %v", tableCtx.Name, err)
 	} else {
+		// generate name
 		if len(analyseData.Name) == 0 {
 			analyseData.Name = tableCtx.Name
 		}
+
+		// fill mark for render
+		tableCtx.IterOperator(func(s string) {
+			analyseData.PutExtra(s, struct{}{})
+		})
+
 		ch <- analyseData
 	}
 }

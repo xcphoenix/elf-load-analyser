@@ -67,12 +67,11 @@ func (p *Pool) Data() []*data.AnalyseData {
 // Init 初始化数据池，当 done 被关闭时，停止接收数据，waitCnt 表示数据接收前要等待的次数
 func (p *Pool) Init(done <-chan struct{}, waitCnt int) {
 	go func() {
-	loop:
 		for {
 			select {
 			case d, ok := <-p.ch:
 				if !ok {
-					break loop
+					return
 				}
 				// 如果还未等待完成，丢弃数据，计数器减一
 				if waitCnt > 0 {
@@ -86,7 +85,7 @@ func (p *Pool) Init(done <-chan struct{}, waitCnt int) {
 			case <-done:
 				close(p.ch)
 				close(p.exit)
-				break loop
+				return
 			}
 		}
 	}()

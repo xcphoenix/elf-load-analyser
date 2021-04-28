@@ -3,7 +3,7 @@ package render
 import (
 	"debug/elf"
 	"errors"
-	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/handler" // import plugin handlers
+	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/enhance" // import plugin handlers
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sync"
 

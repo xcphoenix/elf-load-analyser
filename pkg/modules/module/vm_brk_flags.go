@@ -10,8 +10,8 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
-	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance/virtualm"
 )
 
 //go:embed src/vm_brk_flags.c.k

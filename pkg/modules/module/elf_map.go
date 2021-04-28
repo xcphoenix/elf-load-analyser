@@ -4,7 +4,7 @@ import (
 	_ "embed" // for embed bcc source
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
 	"strconv"
 	"strings"
 

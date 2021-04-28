@@ -4,13 +4,12 @@ import (
 	_ "embed" // for embed bcc source
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
-	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf/enhance"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
+	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
 )
 
 //go:embed src/do_execveat_common.c.k

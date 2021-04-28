@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
-	"github.com/xcphoenix/elf-load-analyser/pkg/render/handler/virtualm"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance/virtualm"
 	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xfs"
 )
 

@@ -38,7 +38,7 @@ func isIllegal(from State, to State, inner bool) bool {
 	return from+1 != to
 }
 
-// EventHandler state changed handler
+// EventHandler state changed enhance
 type EventHandler func(error) error
 
 type stateContext struct {
@@ -56,7 +56,7 @@ func newContext() *stateContext {
 	}
 }
 
-// RegisterHandler register handler, handler will be touched when state be changed from other to s
+// RegisterHandler register enhance, enhance will be touched when state be changed from other to s
 func (c *stateContext) RegisterHandler(s State, e EventHandler) {
 	if isInvalid(s) {
 		panic(fmt.Sprintf("illegal state: %v", s))
@@ -71,7 +71,7 @@ func (c *stateContext) pushStateInner(s State, inner bool) {
 	c.currentState = s
 	for s, handler := range c.state2events[s] {
 		if e := handler(c.abnormalError); e != nil {
-			log.Printf("handler on state[%v] failed: %v", s, e)
+			log.Printf("enhance on state[%v] failed: %v", s, e)
 		}
 	}
 	if s == Exit {
@@ -119,7 +119,7 @@ func (c *stateContext) WithError(e error) {
 
 var defaultContext = newContext()
 
-// RegisterHandler register handler on default stateContext
+// RegisterHandler register enhance on default stateContext
 func RegisterHandler(s State, e EventHandler) {
 	defaultContext.RegisterHandler(s, e)
 }

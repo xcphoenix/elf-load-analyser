@@ -1,4 +1,4 @@
-package handler
+package enhance
 
 import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
@@ -6,7 +6,7 @@ import (
 )
 
 func init() {
-	plugin.RegisterHandler(&statusFilterHandler{}, 0x1)
+	plugin.RegisterPlugin(&statusFilterHandler{}, 0x1)
 }
 
 type statusFilterHandler struct{}

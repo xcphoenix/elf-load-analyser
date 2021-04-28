@@ -26,12 +26,12 @@ const (
 
 // EventResult 事件结果接口，实现中的类型大小在编译时必须是已知的
 type EventResult interface {
+	// 数据渲染
 	Render() *data.AnalyseData
 }
 
 type ModuleResolver interface {
-	// Resolve 解析、发送处理结果, m: bpf模块, ch: 发送数据的 channel，当模块准备完毕时，发送空数据,
-	// stop: 当 stop 被关闭，意味着模块流程将被终止
+	// Resolve 解析、发送处理结果
 	Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData)
 }
 
@@ -74,20 +74,19 @@ func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool
 
 func RenderHandler(event EventResult) func(data []byte) (*data.AnalyseData, error) {
 	return func(data []byte) (*data.AnalyseData, error) {
-		return Render(data, event, true)
+		return Render(data, event)
 	}
 }
 
-func Render(d []byte, event EventResult, enhance bool) (*data.AnalyseData, error) {
+func Render(d []byte, event EventResult) (*data.AnalyseData, error) {
 	err := binary.Read(bytes.NewBuffer(d), bpf.GetHostByteOrder(), event)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode received data to %q, %w",
 			reflect.TypeOf(event).Name(), err)
 	}
 	aData := event.Render()
-	if enhance {
-		enhanceStructField(event, aData)
-	}
+	enhanceStructField(event, aData)
+
 	return aData, nil
 }
 

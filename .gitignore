@@ -2,7 +2,7 @@
 .idea/
 target/
 
-# Binaries for programs and plugins
+# Binaries for programs and enhance
 *.exe
 *.exe~
 *.dll
