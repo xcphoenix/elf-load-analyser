@@ -169,7 +169,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 }
 
 func readyNotify(ch chan<- *data.AnalyseData) {
-	ch <- data.NewErrAnalyseData(data.InvalidStatus, "")
+	ch <- data.NewOtherAnalyseData(data.InvalidStatus, "", nil)
 }
 
 func blockTaskTimeout(name string, task func(), timeout time.Duration) {
@@ -226,7 +226,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(data.NewErrAnalyseData(data.InvalidStatus, "")),
+		Send: reflect.ValueOf(data.NewOtherAnalyseData(data.InvalidStatus, "", nil)),
 	}
 	if idx := chCnt + 1; idx < cnt {
 		cases[idx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}

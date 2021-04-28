@@ -32,7 +32,7 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 	// exec_mmap
 	result.Combine(form.NewMarkdown("映射二进制参数内存结构体到当前进程中"))
 	if a.VmaCnt != 1 {
-		return data.NewErrAnalyseData(data.BugStatus, "数据异常！")
+		return data.NewOtherAnalyseData(data.BugStatus, "数据异常！", nil)
 	}
 	result.Combine(form.NewList(
 		fmt.Sprintf("Vma [0x%x, 0x%x]", a.VmaStart, a.VmaEnd),

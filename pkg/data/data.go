@@ -75,8 +75,8 @@ func NewListAnalyseData(id string, name string, dataList []*AnalyseData) *Analys
 	return newAnalyseData(OkStatus, "", nil, dataList, nil).WithID(id).WithName(name)
 }
 
-func NewErrAnalyseData(s Status, desc string) *AnalyseData {
-	return newAnalyseData(s, desc, nil, nil, nil)
+func NewOtherAnalyseData(s Status, desc string, content Content) *AnalyseData {
+	return newAnalyseData(s, desc, content, nil, nil)
 }
 
 func (a *AnalyseData) WaitReady() {

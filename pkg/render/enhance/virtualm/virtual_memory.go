@@ -3,14 +3,12 @@ package virtualm
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-echarts/go-echarts/charts"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"hash/fnv"
 	"math"
 	"sort"
-	"strings"
-
-	"github.com/go-echarts/go-echarts/charts"
 )
 
 const (
@@ -33,6 +31,44 @@ type vmaClass uint8
 const (
 	mapClass  = vmaClass(iota) // 默认类型
 	fillClass                  // 用于渲染时填充空VMA，无实际意义
+)
+
+const (
+	markLineFormatter = `function(params) {return params.name;}`
+	tipsFormatter     = `function(params) {
+		let dot = '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;' +
+				'height:10px;background-color:' + params.color + '"></span>';
+		let obj = params.value[2];
+		if (typeof(obj.kind) == 'undefined' || obj.kind !== 0) {
+			return 'empty';
+		}
+
+		let startAddr = obj.start.toString(16);
+		let endAddr = obj.end.toString(16);
+		let addrItem = dot + '0x' + startAddr + ' - ' + '0x' + endAddr;
+		
+		let attrItem = dot + obj.attr;
+		let offsetItem = dot + '0X' + obj.offset.toString(16);
+		let fileItem = dot + obj.file;
+		
+		return '<div style="font-family: monospace">' + addrItem + '<br />' + attrItem 
+			+ '<br />' + offsetItem + '<br />' + fileItem + '</div>';
+	}
+`
+	jsFnFormatter = `(function () {
+        let targetType = 'scatter';
+        let posOffset = [-350, 0];
+        let series = option_%[1]s.series;
+        series.forEach(function (element) {
+          if (element.type === targetType) {
+            element.symbolOffset = posOffset;
+            element.symbolSize = 20;
+            element.symbol = 'pin';
+            element.symbolRotate = 40;
+          }
+        });
+        myChart_%[1]s.setOption(option_%[1]s);
+      })();`
 )
 
 // Vma BuildVma 结构体
@@ -111,6 +147,8 @@ type virtualMemory struct {
 	brk      uint64
 
 	vmaList []Vma
+
+	cachedVMShowing string
 }
 
 // newVirtualMemory 创建新的虚拟空间
@@ -120,21 +158,29 @@ func newVirtualMemory() *virtualMemory {
 
 // ShowVM 虚拟空间序列化
 func (vm virtualMemory) ShowVM() string {
-	var buf bytes.Buffer
-	for _, vma := range vm.vmaList {
-		if vma.Class == fillClass {
-			continue
+	if len(vm.cachedVMShowing) == 0 {
+		var buf bytes.Buffer
+
+		sort.Sort(vmaList(vm.vmaList))
+		for _, vma := range vm.vmaList {
+			if vma.Class == fillClass {
+				continue
+			}
+			buf.WriteString(vma.Show())
 		}
-		buf.WriteString(vma.Show())
+		vm.cachedVMShowing = buf.String()
 	}
-	return strings.TrimSpace(buf.String())
+
+	return vm.cachedVMShowing
 }
 
 // ApplyEvent 应用 VMEvent 事件
 func (vm *virtualMemory) ApplyEvent(event VMEvent) (diff string) {
 	before := vm.ShowVM()
 	event.doEvent(vm)
+	vm.cachedVMShowing = "" // clear cached
 	after := vm.ShowVM()
+
 	unifiedDiff := difflib.UnifiedDiff{
 		A:       difflib.SplitLines(before),
 		B:       difflib.SplitLines(after),
@@ -182,33 +228,9 @@ func (vm virtualMemory) fillSlot() []Vma {
 }
 
 // ChartsRender 渲染数据到 Writer，设置host为js、css文件来源
-//nolint:funlen
 func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 	tmpVmaList := vm.fillSlot()
 	addrCnt := 0.0
-
-	const tipsFormatter = `function(params) {
-		let dot = '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;' +
-				'height:10px;background-color:' + params.color + '"></span>';
-		let obj = params.value[2];
-		if (typeof(obj.kind) == 'undefined' || obj.kind !== 0) {
-			return 'empty';
-		}
-
-		let startAddr = obj.start.toString(16);
-		let endAddr = obj.end.toString(16);
-		let addrItem = dot + '0x' + startAddr + ' - ' + '0x' + endAddr;
-		
-		let attrItem = dot + obj.attr;
-		let offsetItem = dot + '0X' + obj.offset.toString(16);
-		let fileItem = dot + obj.file;
-		
-		return '<div style="font-family: monospace">' + addrItem + '<br />' + attrItem 
-			+ '<br />' + offsetItem + '<br />' + fileItem + '</div>';
-	}
-`
-
-	const markLineFormatter = `function(params) {return params.name;}`
 
 	vmBar := charts.NewBar()
 	vmBar.SetGlobalOptions(
@@ -251,20 +273,7 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 
 	vmBar.Overlap(vm.renderAddr(addrMap))
 
-	fn := fmt.Sprintf(`(function () {
-        let targetType = 'scatter';
-        let posOffset = [-350, 0];
-        let series = option_%[1]s.series;
-        series.forEach(function (element) {
-          if (element.type === targetType) {
-            element.symbolOffset = posOffset;
-            element.symbolSize = 20;
-            element.symbol = 'pin';
-            element.symbolRotate = 40;
-          }
-        });
-        myChart_%[1]s.setOption(option_%[1]s);
-      })();`, vmBar.ChartID)
+	fn := fmt.Sprintf(jsFnFormatter, vmBar.ChartID)
 	vmBar.AddJSFuncs(fn)
 
 	return vmBar

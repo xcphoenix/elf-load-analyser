@@ -37,8 +37,11 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 			if !ok {
 				continue
 			}
+
 			diff := vm.ApplyEvent(event)
+
 			url := apiPrefix + strconv.Itoa(cnt)
+			cnt++
 			bar := vm.ChartsRender("/assets/")
 			vmHandlers = append(vmHandlers, plugin.BuildReqHandler(url, func(w http.ResponseWriter, r *http.Request) {
 				if _, ok := v.htmlCache[url]; !ok {
@@ -54,10 +57,10 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 					log.Warnf("Render vm model failed, %v", err)
 				}
 			}))
-			cnt++
+
 			analyseData.Change(func(set data.ContentSet) data.Content {
 				md := form.NewMarkdown().AppendLink("内存模型", url)
-				if len(strings.TrimSpace(diff)) != 0 {
+				if diff = strings.TrimSpace(diff); len(diff) != 0 {
 					md.Append(form.NewMarkdown("VMA 变化: ")).AppendCode("shell", diff)
 				} else {
 					md.Append(form.NewMarkdown("<br />"))

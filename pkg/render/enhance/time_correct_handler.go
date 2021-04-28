@@ -6,7 +6,6 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sort"
-	"strconv"
 	"time"
 )
 
@@ -93,13 +92,9 @@ func parseDataNsKey(d *data.AnalyseData, nsKey string) (bool, uint64, error) {
 
 	d.RmExtra(nsKey)
 
-	if v, ok := v.(string); ok {
-		ns, e := strconv.ParseUint(v, 10, 64)
-		if e != nil {
-			return true, 0, fmt.Errorf("convert ns data to int error, %w", e)
-		}
-		return true, ns, nil
+	if v, ok := v.(uint64); ok {
+		return true, v, nil
+	} else {
+		return true, 0, fmt.Errorf("ns data is not uint64 type")
 	}
-
-	return true, 0, fmt.Errorf("ns data is not string type")
 }

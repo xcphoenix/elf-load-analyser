@@ -5,15 +5,12 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"reflect"
-	"strconv"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
+	"reflect"
 
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 var (
@@ -118,35 +115,6 @@ func parseField(v reflect.Value, d *data.AnalyseData) {
 			}
 			continue
 		}
-		s, err := toString(k)
-		if err == nil {
-			d.PutExtra(label, s)
-		} else {
-			log.Warnf("Parse field(%q) error: %v", k.Type().Name, err)
-		}
+		d.PutExtra(label, k.Interface())
 	}
-}
-
-func toString(value reflect.Value) (key string, err error) {
-	switch value.Type().Kind() {
-	case reflect.Float32, reflect.Float64:
-		key = strconv.FormatFloat(value.Float(), 'f', -1, 64)
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int, reflect.Int64:
-		key = strconv.FormatInt(value.Int(), 10)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
-		key = strconv.FormatUint(value.Uint(), 10)
-	case reflect.String:
-		key = value.String()
-	case reflect.Interface:
-		i := value.Interface()
-		if si, ok := i.(fmt.Stringer); ok {
-			key = si.String()
-		} else {
-			err = fmt.Errorf("unsupported interface type: %q", value.Type().Name())
-		}
-	default:
-		err = fmt.Errorf("unsupported type: %q", value.Type().Name())
-	}
-
-	return
 }
