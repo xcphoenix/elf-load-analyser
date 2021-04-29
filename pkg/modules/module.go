@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
+	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"reflect"
 
 	bpf "github.com/iovisor/gobpf/bcc"
@@ -81,21 +82,32 @@ func Render(d []byte, event EventResult) (*data.AnalyseData, error) {
 		return nil, fmt.Errorf("failed to decode received data to %q, %w",
 			reflect.TypeOf(event).Name(), err)
 	}
-	aData := event.Render()
-	enhanceStructField(event, aData)
 
+	aData := event.Render()
+	if helper.IsNil(aData) {
+		log.Warnf("analyse data is not after %T render", event)
+		return nil, nil
+	}
+
+	enhanceStructField(event, aData)
 	return aData, nil
 }
 
-func enhanceStructField(ptr interface{}, d *data.AnalyseData) {
-	reType := reflect.TypeOf(ptr)
-	var v = reflect.ValueOf(ptr)
-	if reType.Kind() == reflect.Ptr {
-		reType = reflect.ValueOf(ptr).Elem().Type()
-		v = reflect.ValueOf(ptr).Elem()
+func enhanceStructField(ifc interface{}, d *data.AnalyseData) {
+	if helper.IsNil(ifc) {
+		log.Warnf("value is nil when enhance %v", d)
+		return
 	}
-	if reType.Kind() != reflect.Struct {
-		panic("invalid type" + reType.Kind().String())
+
+	var v = reflect.ValueOf(ifc)
+
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() != reflect.Struct {
+		log.Warnf("enhance value is not struct, %s", v.Type())
+		return
 	}
 	parseField(v, d)
 }
@@ -103,15 +115,22 @@ func enhanceStructField(ptr interface{}, d *data.AnalyseData) {
 func parseField(v reflect.Value, d *data.AnalyseData) {
 	for i := 0; i < v.NumField(); i++ {
 		structField := v.Type().Field(i)
+
 		k := v.Field(i)
 		if !k.CanInterface() {
 			continue
 		}
+
 		tag := structField.Tag
 		label := tag.Get(EnhanceTag)
 		if label == "" {
-			if structField.Anonymous && structField.Type.Kind() == reflect.Struct {
-				parseField(k, d)
+			if structField.Anonymous {
+				for k.Kind() == reflect.Interface || k.Kind() == reflect.Ptr {
+					k = k.Elem()
+				}
+				if k.Kind() == reflect.Struct {
+					parseField(k, d)
+				}
 			}
 			continue
 		}

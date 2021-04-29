@@ -1,34 +1,18 @@
 package factory
 
 import (
-	"sort"
-	"sync"
-	"time"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
+	"sync"
+
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
 type Pool struct {
-	mu    sync.Mutex
-	order bool
+	once  sync.Once
 	ch    chan *data.AnalyseData
 	exit  chan struct{}
 	data  []*data.AnalyseData
 	ready chan struct{}
-}
-
-func (p *Pool) Len() int {
-	return len(p.data)
-}
-
-func (p *Pool) Less(i, j int) bool {
-	return time.Time(p.data[i].XTime).Before(time.Time(p.data[j].XTime))
-}
-
-func (p *Pool) Swap(i, j int) {
-	d := p.data
-	d[i], d[j] = d[j], d[i]
 }
 
 func NewPool() *Pool {
@@ -36,7 +20,6 @@ func NewPool() *Pool {
 		ch:    make(chan *data.AnalyseData),
 		exit:  make(chan struct{}),
 		data:  make([]*data.AnalyseData, 0),
-		order: false,
 		ready: make(chan struct{}),
 	}
 }
@@ -52,15 +35,9 @@ func (p *Pool) WaitReady() {
 
 func (p *Pool) Data() []*data.AnalyseData {
 	<-p.exit
-	if !p.order {
-		p.mu.Lock()
-		if !p.order {
-			sort.Sort(p)
-			p.order = true
-		}
+	p.once.Do(func() {
 		state.PushState(state.ProgramLoaded)
-		p.mu.Unlock()
-	}
+	})
 	return p.data
 }
 

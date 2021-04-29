@@ -51,6 +51,9 @@ func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
 	}
 
 	wg.Wait()
+	log.Info("The collection of analyse data is all ready")
+	log.Info("Start execute render plugin enhance result...")
+
 	var reqHandlers []plugin.ReqHandler
 	for _, handler := range plugin.RenderPlugins() {
 		modDataList, tmpHandlers := handler.Handle(dataList)
@@ -60,10 +63,7 @@ func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
 		}
 	}
 
-	d, err := doRender(NewAnalyseRender(dataList))
-	if err != nil {
-		log.Errorf("ChartsRender analyse data error, %v", err)
-	}
+	d, _ := doRender(NewAnalyseRender(dataList))
 	dataCenter[2] = d
 	return dataCenter, reqHandlers
 }
