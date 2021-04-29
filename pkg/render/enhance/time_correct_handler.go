@@ -33,10 +33,14 @@ func newNsMap(kernelBootNs uint64, grabTime time.Time) *nsMap {
 }
 
 func amendTime(ts uint64, timeAmend *nsMap) time.Time {
-	// correct time
+	if ts <= timeAmend.kernelBootNs {
+		log.Warnf("time that need be amend before start time")
+		ts = timeAmend.kernelBootNs + 1
+	}
+
 	afterNs := ts - timeAmend.kernelBootNs
-	realTm := timeAmend.grabTime
-	return realTm.Add(time.Duration(afterNs) * time.Nanosecond)
+	baseTime := timeAmend.grabTime
+	return baseTime.Add(time.Duration(afterNs) * time.Nanosecond)
 }
 
 type timeCorrectPlugin struct{}

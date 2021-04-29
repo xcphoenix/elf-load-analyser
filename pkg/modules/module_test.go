@@ -30,15 +30,13 @@ func Test_enhanceStructField(t *testing.T) {
 
 	tmpAnalyseData := newData()
 	enhanceStructField(bVal, tmpAnalyseData)
-	extraMap := tmpAnalyseData.Extra
-	assert.Equal(t, true, existKey(extraMap, "aa"))
-	assert.Equal(t, true, existKey(extraMap, "bd"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "aa"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "bd"))
 
 	tmpAnalyseData = newData()
 	enhanceStructField(&bVal, tmpAnalyseData)
-	extraMap = tmpAnalyseData.Extra
-	assert.Equal(t, true, existKey(extraMap, "aa"))
-	assert.Equal(t, true, existKey(extraMap, "bd"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "aa"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "bd"))
 
 	cVal := struct {
 		*StructB
@@ -49,10 +47,9 @@ func Test_enhanceStructField(t *testing.T) {
 	}
 	tmpAnalyseData = newData()
 	enhanceStructField(&cVal, tmpAnalyseData)
-	extraMap = tmpAnalyseData.Extra
-	assert.Equal(t, true, existKey(extraMap, "aa"))
-	assert.Equal(t, true, existKey(extraMap, "bd"))
-	assert.Equal(t, true, existKey(extraMap, "cc"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "aa"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "bd"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "cc"))
 
 	dVal := struct {
 		Inf
@@ -63,26 +60,17 @@ func Test_enhanceStructField(t *testing.T) {
 	}
 	tmpAnalyseData = newData()
 	enhanceStructField(&dVal, tmpAnalyseData)
-	extraMap = tmpAnalyseData.Extra
-	assert.Equal(t, true, existKey(extraMap, "aa"))
-	assert.Equal(t, true, existKey(extraMap, "bd"))
-	assert.Equal(t, true, existKey(extraMap, "cc"))
-	assert.Equal(t, true, existKey(extraMap, "dd"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "aa"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "bd"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "cc"))
+	assert.Equal(t, true, existKey(tmpAnalyseData, "dd"))
 }
 
 func newData() *data.AnalyseData {
 	return data.NewAnalyseData(form.NewMarkdown("..."))
 }
 
-func existKey(m map[string]interface{}, key string) bool {
-	_, ok := m[key]
+func existKey(a *data.AnalyseData, key string) bool {
+	_, ok := a.ExtraByKey(key)
 	return ok
-}
-
-func value(m map[string]interface{}, key string) interface{} {
-	val, ok := m[key]
-	if ok {
-		return val
-	}
-	return nil
 }

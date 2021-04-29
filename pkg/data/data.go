@@ -15,16 +15,16 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 }
 
 type AnalyseData struct {
-	XTime    JSONTime               `json:"time"`
-	DataList []*AnalyseData         `json:"dataList"`
-	ID       string                 `json:"id"`
-	Name     string                 `json:"name"`
-	Desc     string                 `json:"desc"`
-	Data     *wrapContent           `json:"data"`
-	Extra    map[string]interface{} `json:"extra"`
-	Status   Status                 `json:"status"`
-	XType    Type                   `json:"type"`
+	XTime    JSONTime       `json:"time"`
+	DataList []*AnalyseData `json:"dataList"`
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Desc     string         `json:"desc"`
+	Data     *wrapContent   `json:"data"`
+	Status   Status         `json:"status"`
+	XType    Type           `json:"type"`
 
+	extra    map[string]interface{}
 	initChan chan struct{}
 	lazyFunc func(aData *AnalyseData) Content // 延迟处理函数, 要求返回 Content，避免忘记返回实际的数据内容
 }
@@ -36,7 +36,7 @@ func newAnalyseData(status Status, desc string, content Content, dataList []*Ana
 		Desc:     status.String(),
 		Status:   status,
 		lazyFunc: lazyFunc,
-		Extra:    map[string]interface{}{},
+		extra:    map[string]interface{}{},
 		initChan: make(chan struct{}),
 	}
 	if len(desc) > 0 {
@@ -57,7 +57,7 @@ func newAnalyseData(status Status, desc string, content Content, dataList []*Ana
 func (a AnalyseData) String() string {
 	return strconv.Quote(fmt.Sprintf("AnalyseData{ID: %s, Name: %s, Status: %s, String: %s, "+
 		"XTime: %v, Data: %v, DataList: %v, Extra: %v}", a.ID, a.Name, a.Status, a.Desc,
-		a.XTime, a.Data, a.DataList, a.Extra))
+		a.XTime, a.Data, a.DataList, a.extra))
 }
 
 // NewAnalyseData create analyse data.
@@ -99,16 +99,16 @@ func (a *AnalyseData) WithID(id string) *AnalyseData {
 }
 
 func (a *AnalyseData) RmExtra(k string) {
-	delete(a.Extra, k)
+	delete(a.extra, k)
 }
 
 func (a *AnalyseData) PutExtra(k string, v interface{}) *AnalyseData {
-	a.Extra[k] = v
+	a.extra[k] = v
 	return a
 }
 
 func (a *AnalyseData) ExtraByKey(k string) (interface{}, bool) {
-	v, ok := a.Extra[k]
+	v, ok := a.extra[k]
 	return v, ok
 }
 
