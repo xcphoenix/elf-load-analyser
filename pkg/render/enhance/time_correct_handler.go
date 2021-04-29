@@ -14,7 +14,6 @@ const (
 	kernelBootNsKey = "_ns_"
 )
 
-// Ps: 只有手动使用了 TimeEventResult 才会执行这个 init
 func init() {
 	plugin.RegisterPlugin(&timeCorrectPlugin{}, 0x10)
 }
@@ -75,6 +74,8 @@ func (t timeCorrectPlugin) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 				continue
 			}
 			aData.XTime = data.JSONTime(amendTime(ns, timeAmend))
+		} else {
+			log.Warnf("Ns field not found, %v", aData)
 		}
 	}
 
@@ -90,11 +91,8 @@ func parseDataNsKey(d *data.AnalyseData, nsKey string) (bool, uint64, error) {
 		return false, 0, nil
 	}
 
-	d.RmExtra(nsKey)
-
 	if v, ok := v.(uint64); ok {
 		return true, v, nil
-	} else {
-		return true, 0, fmt.Errorf("ns data is not uint64 type")
 	}
+	return true, 0, fmt.Errorf("ns data is not uint64 type")
 }
