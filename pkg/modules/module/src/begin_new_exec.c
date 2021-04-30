@@ -32,3 +32,4 @@ int kprobe__begin_new_exec(struct pt_regs* ctx, struct linux_binprm* bprm) {
     begin_new_exec_events.perf_submit((void*)ctx, &event, sizeof(event));
     return 0;
 }
+

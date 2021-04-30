@@ -41,7 +41,7 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 
 	return data.NewAnalyseData(result).
 		PutExtra(virtualm.VmaFlag, virtualm.MapVmaEvent{
-			NewVma: virtualm.BuildVma(a.VmaStart, a.VmaEnd, a.VmaFlags, 0, virtualm.AnonymousMap),
+			NewVma: virtualm.BuildVma(a.VmaStart, a.VmaEnd, a.VmaFlags, 0, virtualm.HeapMap),
 		})
 }
 

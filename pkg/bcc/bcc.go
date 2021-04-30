@@ -2,11 +2,10 @@ package bcc
 
 import (
 	"debug/elf"
-	"strconv"
-	"strings"
-
 	bpf "github.com/iovisor/gobpf/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	"strconv"
+	"strings"
 )
 
 type Type uint8

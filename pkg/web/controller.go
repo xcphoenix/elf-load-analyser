@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-
 	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
@@ -44,7 +43,6 @@ func startWebService(d []*data.AnalyseData, reqHandlers []plugin.ReqHandler) {
 		http.HandleFunc(handler.Pattern, handler.Handler)
 	}
 
-	// 程序的主流程，若定义的端口被占用，使用随机端口
 	for {
 		addr, err := getAnyFreeAddr()
 		if err != nil {

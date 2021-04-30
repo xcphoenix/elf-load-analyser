@@ -63,7 +63,11 @@ func NewTitleMarkdown(level ItemLevel, title string) *Markdown {
 }
 
 func (m *Markdown) WithContents(content ...string) *Markdown {
-	m.content = strings.Join(content, "\n\n")
+	oldContent := m.content
+	if len(oldContent) > 0 {
+		oldContent += "\n\n"
+	}
+	m.content = oldContent + strings.Join(content, "\n\n")
 	return m
 }
 

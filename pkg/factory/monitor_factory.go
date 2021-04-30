@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"sync"
 
@@ -48,7 +49,7 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 
 	log.Info("Start load monitor....")
 	for idx, monitor := range monitors {
-		if monitor == nil {
+		if helper.IsNil(monitor) {
 			continue
 		}
 		monitor := monitor

@@ -28,12 +28,18 @@ type allocBprmEvent struct {
 }
 
 func (a allocBprmEvent) Render() *data.AnalyseData {
-	s := fmt.Sprintf("分配空间，保存二进制文件参数\n\n"+
-		"filename: %q, fdpath: %q, interp: %q, rlimit stack cur: 0x%X, "+
-		"rlimit stack max: 0x%X, current of top mem: 0x%X",
-		data.TrimBytes2Str(a.Filename[:]), data.TrimBytes2Str(a.Fdpath[:]), data.TrimBytes2Str(a.Interp[:]),
-		a.RlimCur, a.RlimMax, a.CurTopOfMem)
-	return data.NewAnalyseData(form.NewMarkdown(s))
+	res := data.NewSet(
+		form.NewMarkdown("分配空间，保存二进制文件参数"),
+		form.NewList(
+			fmt.Sprintf("filename: %q", data.TrimBytes2Str(a.Filename[:])),
+			fmt.Sprintf("fdpath:   %q", data.TrimBytes2Str(a.Fdpath[:])),
+			fmt.Sprintf("interp:   %q", data.TrimBytes2Str(a.Interp[:])),
+			fmt.Sprintf("rlimit stack cur:   0x%X", a.RlimCur),
+			fmt.Sprintf("rlimit stack max:   0x%X", a.RlimMax),
+			fmt.Sprintf("current of top mem: 0x%X", a.CurTopOfMem),
+		),
+	)
+	return data.NewAnalyseData(res)
 }
 
 func init() {

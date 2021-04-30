@@ -2,6 +2,7 @@ package enhance
 
 import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 )
 
@@ -16,7 +17,7 @@ func (s statusFilterHandler) Handle(dataCollection []*data.AnalyseData) ([]*data
 
 	var cnt = 0
 	for _, d := range dataCollection {
-		if data.IsValid(d.Status) {
+		if helper.IsNotNil(d) && data.IsValid(d.Status) {
 			newDataCollection[cnt] = d
 			cnt++
 		}
