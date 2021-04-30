@@ -18,7 +18,7 @@ func init() {
 	plugin.RegisterPlugin(&timeCorrectPlugin{}, 0x10)
 }
 
-// TimeEventResult EventResult with env boot ns, coordinate with enhance.timeCorrectPlugin
+// TimeEventResult 包含内核启动时间以修正相对时间
 type TimeEventResult struct {
 	TS uint64 `enhance:"_ns_"`
 }
