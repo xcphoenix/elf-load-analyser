@@ -130,6 +130,7 @@ func (vm vmaList) Len() int {
 	return len(vm)
 }
 
+// 倒序
 func (vm vmaList) Less(i, j int) bool {
 	return vm[i].Start > vm[j].Start
 }

@@ -3,6 +3,7 @@ module github.com/xcphoenix/elf-load-analyser
 go 1.16
 
 require (
+	github.com/antlabs/deepcopy v0.0.4 // indirect
 	github.com/benbjohnson/hashfs v0.1.0
 	github.com/go-echarts/go-echarts v1.0.0
 	github.com/iovisor/gobpf v0.0.0-20210109143822-fb892541d416
