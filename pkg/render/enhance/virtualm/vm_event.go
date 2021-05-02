@@ -22,10 +22,9 @@ func (m MapVmaEvent) doEvent(memory *virtualMemory) {
 
 // MprotectFixupEvent simulate `mprotect_fixup` behavior
 type MprotectFixupEvent struct {
-	TgtVma Vma    // target vma
-	Start  uint64 // region start
-	End    uint64 // region end
-	Flags  uint64 // new flags
+	Start uint64 // region start
+	End   uint64 // region end
+	Flags uint64 // new flags
 }
 
 func (m MprotectFixupEvent) doEvent(memory *virtualMemory) {
@@ -34,50 +33,39 @@ func (m MprotectFixupEvent) doEvent(memory *virtualMemory) {
 	}
 
 	var refactorVmas = make([]int, 0)
-	// 仅关注 TgtVma 的区间范围
-	startVal := m.TgtVma.Start
-	endVal := m.TgtVma.End
 
 	// TODO: 优化排序，目前存在很多的冗余操作
 	// 地址从高到底排序
 	sort.Sort(vmaList(memory.vmaList))
 
 	for i, vma := range memory.vmaList {
-		if vma.Start >= endVal {
+		if vma.Start >= m.End {
 			continue
 		}
-		if vma.End <= startVal {
+		if vma.End <= m.Start {
 			break
 		}
 		i := i
 		refactorVmas = append(refactorVmas, i)
 	}
 
-	switch len(refactorVmas) {
-	case 0:
-		// 直接创建 vma
-		memory.vmaList = append(memory.vmaList, BuildVma(m.Start, m.End, m.Flags, m.TgtVma.Offset, m.TgtVma.MappedFile))
-	default:
+	if len(refactorVmas) == 1 {
 		var topChangedVma, bottomChangedVma Vma
 		_ = deepcopy.Copy(&topChangedVma, &(memory.vmaList[refactorVmas[0]])).Do()
 		_ = deepcopy.Copy(&bottomChangedVma, &(memory.vmaList[refactorVmas[len(refactorVmas)-1]])).Do()
-
-		topRegionLen := topChangedVma.End - endVal
-		bottomRegionLen := startVal - bottomChangedVma.Start
-
+		topRegionLen := topChangedVma.End - m.End
+		bottomRegionLen := m.Start - bottomChangedVma.Start
 		for _, vmaIdx := range refactorVmas {
 			memory.vmaList[vmaIdx].Flags = m.Flags
 		}
-
 		if topRegionLen > 0 {
-			memory.vmaList[refactorVmas[0]].End = endVal
-			topChangedVma.Start = endVal
+			memory.vmaList[refactorVmas[0]].End = m.End
+			topChangedVma.Start = m.End
 		}
 		if bottomRegionLen > 0 {
-			memory.vmaList[refactorVmas[len(refactorVmas)-1]].Start = startVal
-			bottomChangedVma.End = startVal
+			memory.vmaList[refactorVmas[len(refactorVmas)-1]].Start = m.Start
+			bottomChangedVma.End = m.Start
 		}
-
 		if topRegionLen > 0 {
 			memory.vmaList = append(memory.vmaList, topChangedVma)
 		}
@@ -85,8 +73,6 @@ func (m MprotectFixupEvent) doEvent(memory *virtualMemory) {
 			memory.vmaList = append(memory.vmaList, bottomChangedVma)
 		}
 	}
-
-	// TODO merge same attr vma
 }
 
 // ShiftVmaEvent simulate `shift_arg_pages`, but just change vma region
