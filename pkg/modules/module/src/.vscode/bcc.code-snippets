@@ -20,10 +20,39 @@
   "Perf Submit": {
     "scope": "C,c",
     "prefix": "psub",
-    "body": [
-      "$1.perf_submit((void*)ctx, $2, sizeof($3));",
-      ""
-    ],
+    "body": ["$1.perf_submit((void*)ctx, $2, sizeof($3));", ""],
     "description": "event perf submit"
-  },  
+  },
+  "Kprobe": {
+    "scope": "C,c",
+    "prefix": "kprobe",
+    "body": [
+      "int kprobe__$1(struct pt_regs *ctx $2) {",
+      "\tif ((u32)bpf_get_current_pid_tgid() != _PID_) {",
+      "\t\treturn 0;",
+      "\t}",
+      "\t",
+      "\t$3",
+      "\t",
+      "\treturn 0;",
+      "}"
+    ],
+    "description": "kprobe func"
+  },
+  "Kretprobe": {
+    "scope": "C,c",
+    "prefix": "kretprobe",
+    "body": [
+      "int kretprobe__$1(struct pt_regs *ctx) {",
+      "\tif ((u32)bpf_get_current_pid_tgid() != _PID_) {",
+      "\t\treturn 0;",
+      "\t}",
+      "\t",
+      "\t$2",
+      "\t",
+      "\treturn 0;",
+      "}"
+    ],
+    "description": "kretprobe func"
+  }
 }
