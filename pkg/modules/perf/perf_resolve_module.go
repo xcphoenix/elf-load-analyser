@@ -182,7 +182,7 @@ func blockTaskTimeout(name string, task func(), timeout time.Duration) {
 	case <-ch:
 		return
 	case <-time.After(timeout):
-		log.Warnf("task %q timeout", name)
+		log.Infof("notice: task %q timeout", name)
 		return
 	}
 }
