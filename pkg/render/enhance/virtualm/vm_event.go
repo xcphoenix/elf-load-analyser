@@ -83,12 +83,32 @@ type ShiftVmaEvent struct {
 
 func (s ShiftVmaEvent) doEvent(memory *virtualMemory) {
 	// 暂时忽略 vma 重合等异常情况
-
-	for _, vma := range memory.vmaList {
-		if vma.Start == s.TgtVma.Start {
-			vma.Start -= s.Shift
-			vma.End -= s.Shift
+	for i := range memory.vmaList {
+		if memory.vmaList[i].Start == s.TgtVma.Start {
+			memory.vmaList[i].Start -= s.Shift
+			memory.vmaList[i].End -= s.Shift
 			break
+		}
+	}
+}
+
+// AdjustVmaEvent simulate `__vma_adjust`, but just change vma region, ignore operation about insert and expand
+type AdjustVmaEvent struct {
+	VmaStart    uint64
+	VmaEnd      uint64
+	AdjustStart uint64
+	AdjustEnd   uint64
+	// ignore pgoff
+}
+
+func (a AdjustVmaEvent) doEvent(memory *virtualMemory) {
+	if len(memory.vmaList) == 0 {
+		return
+	}
+	for i := range memory.vmaList {
+		if memory.vmaList[i].Start == a.VmaStart && memory.vmaList[i].End == a.VmaEnd {
+			memory.vmaList[i].Start = a.AdjustStart
+			memory.vmaList[i].End = a.AdjustEnd
 		}
 	}
 }
