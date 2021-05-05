@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -34,10 +33,10 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 	if a.VmaCnt != 1 {
 		return data.NewOtherAnalyseData(data.BugStatus, "数据异常！", nil)
 	}
-	result.Combine(form.NewList(
-		fmt.Sprintf("Vma [0x%x, 0x%x]", a.VmaStart, a.VmaEnd),
-		fmt.Sprintf("Vma flags: %x Vma prot: %x", a.VmaFlags, a.VmaPageProt),
-	))
+	result.Combine(form.NewFmtList(form.Fmt{
+		{"Vma [0x%x, 0x%x]", a.VmaStart, a.VmaEnd},
+		{"Vma flags: %x Vma prot: %x", a.VmaFlags, a.VmaPageProt},
+	}))
 
 	return data.NewAnalyseData(result).
 		PutExtra(virtualm.VmaFlag, virtualm.MapVmaEvent{

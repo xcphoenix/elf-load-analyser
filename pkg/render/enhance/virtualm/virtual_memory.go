@@ -15,8 +15,6 @@ const (
 	AnonymousMap = ""
 	HeapMap      = "[heap]"
 	StackMap     = "[stack]"
-	VvarMap      = "[vvar]"
-	Vsyscall     = "[vsyscall]"
 )
 
 const (
@@ -141,13 +139,10 @@ func (vm vmaList) Swap(i, j int) {
 
 // virtualMemory 虚拟内存
 type virtualMemory struct {
-	word     uint
-	taskSize uint64
-	mmapBase uint64
-	startBrk uint64
-	brk      uint64
+	word uint
 
-	vmaList []Vma
+	indicatrix map[string]uint64
+	vmaList    []Vma
 
 	cachedVMShowing string
 }
@@ -198,9 +193,8 @@ func (vm virtualMemory) fillSlot() []Vma {
 	sort.Sort(vmaList(tmpVmaList))
 	var fillVma []Vma
 
-	// 如果设置了 taskSize startBrk Brk 或者 mmapSize，找到其中的最大值
 	// 如果这个值超出了当前 vma 最大值的范围（排序后第一个或者如果vma是空的话取0），映射这个区域
-	newMaxAddr := maxAddr(vm.taskSize, vm.startBrk, vm.brk, vm.mmapBase)
+	newMaxAddr := maxIndicatrices(vm.indicatrix)
 	var curMaxAddr uint64
 	if len(tmpVmaList) != 0 {
 		curMaxAddr = tmpVmaList[0].End
@@ -284,28 +278,14 @@ func (vm virtualMemory) renderAddr(addrMap map[uint64]float64) *charts.Scatter {
 	scatter := charts.NewScatter()
 	scatter.AddXAxis([]string{""})
 
-	// 重新计算虚拟值
-	if vm.taskSize > 0 {
-		scatter.AddYAxis("task_size", []interface{}{calAddr(addrMap, vm.taskSize)}, charts.LabelTextOpts{
+	for desc, addr := range vm.indicatrix {
+		scatter.AddYAxis(desc, []interface{}{calAddr(addrMap, addr)}, charts.LabelTextOpts{
 			Show:      true,
 			Position:  "left",
-			Formatter: fmt.Sprintf("task_size:\n%x", vm.taskSize),
+			Formatter: fmt.Sprintf("%s:\n%x", desc, addr),
 		})
 	}
-	if vm.mmapBase > 0 {
-		scatter.AddYAxis("mmap_base", []interface{}{calAddr(addrMap, vm.mmapBase)}, charts.LabelTextOpts{
-			Show:      true,
-			Position:  "left",
-			Formatter: fmt.Sprintf("mmap_base:\n%x", vm.mmapBase),
-		})
-	}
-	if vm.startBrk > 0 {
-		scatter.AddYAxis("start_brk", []interface{}{calAddr(addrMap, vm.startBrk)}, charts.LabelTextOpts{
-			Show:      true,
-			Position:  "left",
-			Formatter: fmt.Sprintf("start_brk:\n%x", vm.startBrk),
-		})
-	}
+
 	return scatter
 }
 
@@ -358,6 +338,19 @@ func maxAddr(addrArray ...uint64) uint64 {
 		}
 	}
 	return max
+}
+
+func maxIndicatrices(indicatrices map[string]uint64) uint64 {
+	if len(indicatrices) == 0 {
+		return 0
+	}
+	var cnt = 0
+	addrs := make([]uint64, len(indicatrices))
+	for _, u := range indicatrices {
+		addrs[cnt] = u
+		cnt++
+	}
+	return maxAddr(addrs...)
 }
 
 // flatAddr 地址映射

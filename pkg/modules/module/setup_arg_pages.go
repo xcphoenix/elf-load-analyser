@@ -43,21 +43,21 @@ func (s setupArgPageEvent) Render() *data.AnalyseData {
 	pageSize := uint64(os.Getpagesize())
 	res := data.NewSet(
 		form.NewMarkdown("开始执行处理栈的最后操作：更新栈的权限，重分配栈的位置，扩展栈空间等操作"),
-		form.NewList(
-			fmt.Sprintf("栈随机化后位置为: %x", s.StackTop),
-			helper.IfElse(
+		form.NewFmtList(form.Fmt{
+			{"栈随机化后位置为: %x", s.StackTop},
+			{helper.IfElse(
 				s.ExecutableStackStatus >= 0 && int(s.ExecutableStackStatus) < len(mappedStatus),
 				fmt.Sprintf("栈的状态: %s", mappedStatus[s.ExecutableStackStatus]),
 				"BUG: 栈状态无效",
-			).(string),
-			fmt.Sprintf("栈顶经 arch_align_stack 处理后的值为: %x", s.StackTopAfterArchAlign),
-			fmt.Sprintf("栈顶最终的位置为: %x", s.StackTopFinal),
-			fmt.Sprintf("临时栈区域为: [%x, %x], 占用 %d pages", s.VmaStart, s.VmaEnd, (s.VmaEnd-s.VmaStart)/pageSize),
-			fmt.Sprintf("栈需要偏移的值: %x", s.StackShift),
-			fmt.Sprintf("栈仍需扩展的空间大小为: %d pages", s.StackExpand/pageSize),
-			fmt.Sprintf("栈的最大资源限制值为: %d pages (bprm->rlim_stack.rlim_cur: %x & PAGE_MASK: %x), 可通过 ulimit 查看和修改资源限制",
-				s.RlimStack/pageSize, s.BprmRlimStackCur, s.PageMask),
-		),
+			)},
+			{"栈顶经 arch_align_stack 处理后的值为: %x", s.StackTopAfterArchAlign},
+			{"栈顶最终的位置为: %x", s.StackTopFinal},
+			{"临时栈区域为: [%x, %x], 占用 %d pages", s.VmaStart, s.VmaEnd, (s.VmaEnd - s.VmaStart) / pageSize},
+			{"栈需要偏移的值: %x", s.StackShift},
+			{"栈仍需扩展的空间大小为: %d pages", s.StackExpand / pageSize},
+			{"栈的最大资源限制值为: %d pages (bprm->rlim_stack.rlim_cur: %x & PAGE_MASK: %x), 可通过 ulimit 查看和修改资源限制",
+				s.RlimStack / pageSize, s.BprmRlimStackCur, s.PageMask},
+		}),
 	)
 	return data.NewAnalyseData(res)
 }

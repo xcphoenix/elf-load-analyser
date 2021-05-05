@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // embed for randomize_stack_top
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -28,13 +27,13 @@ func (r randomizeStackTopEvent) Render() *data.AnalyseData {
 	var randomizeValue = int64(r.StackTopAligned - r.ActualStackTop)
 	res := data.NewSet(
 		form.NewMarkdown("随机化栈顶位置"),
-		form.NewList(
-			fmt.Sprintf("理论上的栈顶位置 (STACK_TOP): %x", r.StackTop),
-			fmt.Sprintf("理论上的栈顶位置 (STACK_TOP) 按页对齐后: %x", r.StackTopAligned),
-			fmt.Sprintf("偏移后的栈顶位置: %x", r.ActualStackTop),
-			fmt.Sprintf("随机偏移值为：%x", helper.IfElse(randomizeValue > 0, randomizeValue, -randomizeValue)),
-			fmt.Sprintf("栈向 %s 增长", helper.IfElse(randomizeValue < 0, "上", "下")),
-		),
+		form.NewFmtList(form.Fmt{
+			{"理论上的栈顶位置 (STACK_TOP): %x", r.StackTop},
+			{"理论上的栈顶位置 (STACK_TOP) 按页对齐后: %x", r.StackTopAligned},
+			{"偏移后的栈顶位置: %x", r.ActualStackTop},
+			{"随机偏移值为：%x", helper.IfElse(randomizeValue > 0, randomizeValue, -randomizeValue)},
+			{"栈向 %s 增长", helper.IfElse(randomizeValue < 0, "上", "下")},
+		}),
 	)
 	return data.NewAnalyseData(res)
 }

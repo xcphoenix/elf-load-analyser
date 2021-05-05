@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // embed for arch_randomize_brk
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -28,16 +27,16 @@ func (a archRandomizeBrkEvent) Render() *data.AnalyseData {
 	if a.Type != 0 {
 		result.Combine(form.NewMarkdown("随机化堆的位置："))
 	}
-	result.Combine(form.NewList(
-		fmt.Sprintf("start_brk: 0x%x", a.StartBrk),
-		fmt.Sprintf("brk: 0x%x", a.Brk),
-	))
+	result.Combine(form.NewFmtList(form.Fmt{
+		{"start_brk: 0x%x", a.StartBrk},
+		{"brk: 0x%x", a.Brk},
+	}))
 	d := data.NewAnalyseData(result)
 	if a.Type != 0 {
-		d.PutExtra(virtualm.VmaFlag, virtualm.BrkVMEvent{
-			StartBrk: a.StartBrk,
-			Brk:      a.Brk,
-		})
+		d.PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatricesEvent(map[string]uint64{
+			"StartBrk": a.StartBrk,
+			"Brk":      a.Brk,
+		}))
 	}
 	return d
 }

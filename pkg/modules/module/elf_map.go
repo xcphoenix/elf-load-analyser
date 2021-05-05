@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
 	"strconv"
@@ -59,18 +58,18 @@ func (e elfMapPropEventType) Render() *data.AnalyseData {
 
 	result := data.NewSet().Combine(
 		form.NewMarkdown("获取文件映射相关属性\n\n"),
-		form.NewList(
-			fmt.Sprintf("是否为动态共享对象: %v", e.IsDyn),
-			fmt.Sprintf("是否含有解释器: %v", e.WithInterp),
-			fmt.Sprintf("ELF入口地址: 0X%X", e.EEntry),
-			fmt.Sprintf("可加载段最大对齐值: 0X%X", e.MaxAlign),
-			fmt.Sprintf("是否开启数据段、代码段地址随机化: %v", e.IsRnd),
-			fmt.Sprintf("地址随机化值: 0X%X", e.Rnd),
-		),
-		form.NewList(
-			fmt.Sprintf("加载地址：0X%X", e.LoadAddr),
-			fmt.Sprintf("加载偏移：0X%X", e.LoadBias),
-		),
+		form.NewFmtList(form.Fmt{
+			{"是否为动态共享对象: %v", e.IsDyn},
+			{"是否含有解释器: %v", e.WithInterp},
+			{"ELF入口地址: 0X%X", e.EEntry},
+			{"可加载段最大对齐值: 0X%X", e.MaxAlign},
+			{"是否开启数据段、代码段地址随机化: %v", e.IsRnd},
+			{"地址随机化值: 0X%X", e.Rnd},
+		}),
+		form.NewFmtList(form.Fmt{
+			{"加载地址：0X%X", e.LoadAddr},
+			{"加载偏移：0X%X", e.LoadBias},
+		}),
 	)
 	return data.NewAnalyseData(result)
 }

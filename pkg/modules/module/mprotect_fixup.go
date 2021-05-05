@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // embed for mprotect_fixup
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -29,11 +28,11 @@ type mprotectFixupEvent struct {
 func (m mprotectFixupEvent) Render() *data.AnalyseData {
 	res := data.NewSet(
 		form.NewMarkdown("修改栈 vma 权限"),
-		form.NewList(
-			fmt.Sprintf("修改的 vma: [%x, %x]", m.VmaStart, m.VmaEnd),
-			fmt.Sprintf("修改的区域: [%x, %x]", m.RegionStart, m.RegionEnd),
-			fmt.Sprintf("flags: %x", m.Flags),
-		),
+		form.NewFmtList(form.Fmt{
+			{"修改的 vma: [%x, %x]", m.VmaStart, m.VmaEnd},
+			{"修改的区域: [%x, %x]", m.RegionStart, m.RegionEnd},
+			{"flags: %x", m.Flags},
+		}),
 	)
 	return data.NewAnalyseData(res).
 		PutExtra(virtualm.VmaFlag, virtualm.MprotectFixupEvent{

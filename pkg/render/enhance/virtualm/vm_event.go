@@ -113,31 +113,32 @@ func (a AdjustVmaEvent) doEvent(memory *virtualMemory) {
 	}
 }
 
-// TaskSizeVmEvent 设置进程虚拟空间大小事件
-type TaskSizeVMEvent struct {
-	TaskSize uint64
+type VMIndicatrixEvent struct {
+	indicatrix map[string]uint64
 }
 
-func (t TaskSizeVMEvent) doEvent(memory *virtualMemory) {
-	memory.taskSize = t.TaskSize
+func NewVMIndicatricesEvent(indicatrices map[string]uint64) *VMIndicatrixEvent {
+	return &VMIndicatrixEvent{
+		indicatrix: indicatrices,
+	}
 }
 
-// MMapVMEvent mmap base属性
-type MMapVMEvent struct {
-	MmapBase uint64
+func NewVMIndicatrixEvent(desc string, addr uint64) *VMIndicatrixEvent {
+	return &VMIndicatrixEvent{
+		indicatrix: map[string]uint64{
+			desc: addr,
+		},
+	}
 }
 
-func (m MMapVMEvent) doEvent(memory *virtualMemory) {
-	memory.mmapBase = m.MmapBase
-}
-
-// BrkVMEvent 堆属性
-type BrkVMEvent struct {
-	StartBrk uint64
-	Brk      uint64
-}
-
-func (b BrkVMEvent) doEvent(memory *virtualMemory) {
-	memory.startBrk = b.StartBrk
-	memory.brk = b.Brk
+func (v VMIndicatrixEvent) doEvent(memory *virtualMemory) {
+	if len(v.indicatrix) == 0 {
+		return
+	}
+	if memory.indicatrix == nil {
+		memory.indicatrix = make(map[string]uint64, 0)
+	}
+	for desc, addr := range v.indicatrix {
+		memory.indicatrix[desc] = addr
+	}
 }

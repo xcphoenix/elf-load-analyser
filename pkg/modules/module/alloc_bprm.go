@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -30,14 +29,14 @@ type allocBprmEvent struct {
 func (a allocBprmEvent) Render() *data.AnalyseData {
 	res := data.NewSet(
 		form.NewMarkdown("分配空间，保存二进制文件参数"),
-		form.NewList(
-			fmt.Sprintf("filename: %q", data.TrimBytes2Str(a.Filename[:])),
-			fmt.Sprintf("fdpath:   %q", data.TrimBytes2Str(a.Fdpath[:])),
-			fmt.Sprintf("interp:   %q", data.TrimBytes2Str(a.Interp[:])),
-			fmt.Sprintf("rlimit stack cur:   0x%X", a.RlimCur),
-			fmt.Sprintf("rlimit stack max:   0x%X", a.RlimMax),
-			fmt.Sprintf("current of top mem: 0x%X", a.CurTopOfMem),
-		),
+		form.NewFmtList(form.Fmt{
+			{"filename: %q", data.TrimBytes2Str(a.Filename[:])},
+			{"fdpath:   %q", data.TrimBytes2Str(a.Fdpath[:])},
+			{"interp:   %q", data.TrimBytes2Str(a.Interp[:])},
+			{"rlimit stack cur:   0x%X", a.RlimCur},
+			{"rlimit stack max:   0x%X", a.RlimMax},
+			{"current of top mem: 0x%X", a.CurTopOfMem},
+		}),
 	)
 	return data.NewAnalyseData(res)
 }

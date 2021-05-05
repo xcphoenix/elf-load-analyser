@@ -31,11 +31,11 @@ type setBrkEvent struct {
 func (s setBrkEvent) Render() *data.AnalyseData {
 	result := data.NewSet(
 		form.NewMarkdown("可加载段 p_memsz > p_filesz，映射匿名页"),
-		form.NewList(
-			fmt.Sprintf("Start(elf_bss): %x, after alignment: %x", s.Start, s.StartAligned),
-			fmt.Sprintf("End(elf_brk):   %x, after alignment: %x", s.End, s.EndAligned),
-			fmt.Sprintf("Prot: %x", s.Prot),
-		),
+		form.NewFmtList(form.Fmt{
+			{"Start(elf_bss): %x, after alignment: %x", s.Start, s.StartAligned},
+			{"End(elf_brk):   %x, after alignment: %x", s.End, s.EndAligned},
+			{"Prot: %x", s.Prot},
+		}),
 	)
 	if s.EndAligned > s.StartAligned {
 		var prot = "0"
@@ -52,10 +52,11 @@ func (s setBrkEvent) Render() *data.AnalyseData {
 		result.Combine(form.NewMarkdown(fmt.Sprintf("清除 bss 未映射的剩下区域 (%x, %x)", s.Start, s.Start+uint64(s.ClearBytes))))
 	}
 
-	return data.NewAnalyseData(result).PutExtra(virtualm.VmaFlag, virtualm.BrkVMEvent{
-		StartBrk: s.EndAligned,
-		Brk:      s.EndAligned,
-	})
+	return data.NewAnalyseData(result).
+		PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatricesEvent(map[string]uint64{
+			"StartBrk": s.EndAligned,
+			"Brk":      s.EndAligned,
+		}))
 }
 
 func init() {

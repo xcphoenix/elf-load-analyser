@@ -25,8 +25,10 @@ type setupNewExecEvent struct {
 func (s setupNewExecEvent) Render() *data.AnalyseData {
 	return data.NewAnalyseData(data.NewSet(
 		form.NewMarkdown("初始化程序"),
-		form.NewList(fmt.Sprintf("rlim_cur: 0x%x", s.RlimCur)),
-		form.NewList(fmt.Sprintf("rlim_max: 0x%x", s.RlimMax)),
+		form.NewFmtList(form.Fmt{
+			{"rlim_cur: 0x%x", s.RlimCur},
+			{"rlim_max: 0x%x", s.RlimMax},
+		}),
 	))
 }
 
@@ -37,7 +39,7 @@ type setupNewExecRetEvent struct {
 
 func (s setupNewExecRetEvent) Render() *data.AnalyseData {
 	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("虚拟空间大小：0x%x", s.TaskSize))).
-		PutExtra(virtualm.VmaFlag, virtualm.TaskSizeVMEvent{TaskSize: s.TaskSize})
+		PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatrixEvent("TaskSize", s.TaskSize))
 }
 
 func init() {

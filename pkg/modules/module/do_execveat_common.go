@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // for embed bcc source
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -24,11 +23,11 @@ type execveatComEvent struct {
 
 func (e execveatComEvent) Render() *data.AnalyseData {
 	s := data.TrimBytes2Str(e.Filename[:])
-	var msg = form.NewList(
-		fmt.Sprintf("fd = %d", e.Fd),
-		fmt.Sprintf("flags = %d", e.Flags),
-		fmt.Sprintf("filename = %s", s),
-	)
+	var msg = form.NewFmtList(form.Fmt{
+		{"fd = %d", e.Fd},
+		{"flags = %d", e.Flags},
+		{"filename = %s", s},
+	})
 	return data.NewAnalyseData(msg)
 }
 

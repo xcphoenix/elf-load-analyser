@@ -2,7 +2,6 @@ package module
 
 import (
 	_ "embed" // embed for free_page_about.c
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
@@ -38,10 +37,10 @@ type freePgdRangeEventType struct {
 func (f freePgdRangeEventType) Render() *data.AnalyseData {
 	res := data.NewSet(
 		form.NewMarkdown("释放可以清除的页表"),
-		form.NewList(
-			fmt.Sprintf("addr: %x, end: %x", f.Addr, f.End),
-			fmt.Sprintf("floor: %x, ceiling: %x", f.Floor, f.Ceiling),
-		),
+		form.NewFmtList(form.Fmt{
+			{"addr: %x, end: %x", f.Addr, f.End},
+			{"floor: %x, ceiling: %x", f.Floor, f.Ceiling},
+		}),
 	)
 	return data.NewAnalyseData(res)
 }

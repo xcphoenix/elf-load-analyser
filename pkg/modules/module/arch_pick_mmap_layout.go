@@ -23,7 +23,7 @@ type archPickMmapLayoutEvent struct {
 
 func (a archPickMmapLayoutEvent) Render() *data.AnalyseData {
 	return data.NewAnalyseData(form.NewMarkdown(fmt.Sprintf("mmap 基地址：0x%x", a.MmapBase))).
-		PutExtra(virtualm.VmaFlag, virtualm.MMapVMEvent{MmapBase: a.MmapBase})
+		PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatrixEvent("Mmap_base", a.MmapBase))
 }
 
 func init() {
