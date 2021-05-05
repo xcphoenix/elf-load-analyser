@@ -11,6 +11,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
+	"strings"
 )
 
 type sysExecveEvent struct {
@@ -46,7 +47,10 @@ func init() {
 			bcc.NewKprobeEvent("syscall__execve", fnName, -1),
 			bcc.NewKretprobeEvent("do_ret_sys_execve", fnName, -1),
 		},
-		IsEnd: true,
+		LazyInit: func(mm *modules.MonitorModule, param bcc.PreParam) bool {
+			mm.IsEnd = len(param.Interp) == 0 || !strings.Contains(param.Interp, "ld-linux")
+			return false
+		},
 	})
 	m.RegisterOnceTable(entry, modules.RenderHandler(&sysExecveEvent{}))
 	m.RegisterOnceTable("ret_event", modules.RenderHandler(&sysExecveRetEvent{}))

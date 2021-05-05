@@ -19,8 +19,6 @@ func NewKprobeEvent(name string, fnName string, maxActive int) *Event {
 	return e
 }
 
-func (e *KprobeEvent) LazyInit(_ PreParam) {}
-
 func (e *KprobeEvent) Attach(m *bpf.Module, fd int) error {
 	return m.AttachKprobe(e.inner.FnName, fd, e.maxActive)
 }

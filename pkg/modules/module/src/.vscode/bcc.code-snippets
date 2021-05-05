@@ -20,7 +20,7 @@
   "Perf Submit": {
     "scope": "C,c",
     "prefix": "psub",
-    "body": ["$1.perf_submit((void*)ctx, $2, sizeof($3));", ""],
+    "body": ["$1.perf_submit((void*)ctx, (void*)$2, sizeof($3));", ""],
     "description": "event perf submit"
   },
   "Kprobe": {

@@ -53,7 +53,7 @@ class MainBreakpoint(gdb.Breakpoint):
 
 
 gdb.execute('set non-stop 1')
-gdb.execute('file /usr/bin/git')
+gdb.execute('file /usr/bin/whoami')
 gdb.execute('catch syscall mmap mprotect munmap')
 # gdb.execute('commands 1\nsilent\nend\n')
 s = CatchSyscallState()

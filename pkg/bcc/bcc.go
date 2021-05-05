@@ -52,8 +52,6 @@ type action interface {
 	Attach(m *bpf.Module, fd int) error
 	// Loader load symbol
 	Load(m *bpf.Module) (int, error)
-	// LazyInit lazy init by PreParam
-	LazyInit(ctx PreParam)
 }
 
 type Event struct {
@@ -91,7 +89,6 @@ func (m *Monitor) PreProcessing(ctx PreParam) {
 	}
 	// init
 	for _, event := range m.events {
-		event.LazyInit(ctx)
 		m.event2Action[event] = &event.action
 	}
 	// PID replace

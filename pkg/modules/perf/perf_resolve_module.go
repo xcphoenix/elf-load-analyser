@@ -127,6 +127,10 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	go func() {
 		defer func() {
 			wg.Wait()
+			// clear
+			for i := range cases {
+				cases[i].Chan = reflect.ValueOf(nil)
+			}
 			close(finish)
 		}()
 
