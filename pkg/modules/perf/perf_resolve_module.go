@@ -14,6 +14,8 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
+const EndFlag = "_END_"
+
 type TableHandler func(data []byte) (*data.AnalyseData, error)
 
 // TableCtx table context
@@ -113,16 +115,25 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	perfMaps := initPerMaps(m, p)
 	finish := make(chan struct{})
 
+	startEnd := make(chan struct{})
+	endNow := make(chan struct{})
+
 	chCnt := len(p.table2Ctx)
-	cnt := chCnt + 2
+	cnt := chCnt + 3
 	remaining := cnt
-	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ch, ctx.Done())
+	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ch, ctx.Done(), endNow)
 
 	lastRemain := 0
 	if p.IsEnd() {
 		lastRemain++
 	}
 	wg := &sync.WaitGroup{}
+
+	go func() {
+		<-startEnd
+		<-time.After(1000 * time.Millisecond)
+		endNow <- struct{}{}
+	}()
 
 	go func() {
 		defer func() {
@@ -137,7 +148,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 		for remaining > lastRemain {
 			// 返回选择的索引、如果是 recv，返回 value 是否有效，ok 返回 false 表示 channel 被关闭
 			chosen, value, ok := reflect.Select(cases)
-			if value.IsValid() && ok {
+			if value.IsValid() && ok && chosen < len(tableNames) {
 				tName := tableNames[chosen]
 				tableCtx := p.table2Ctx[tName]
 
@@ -147,12 +158,17 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 					defer wg.Done()
 					dataProcessing(d, tableCtx, ch)
 				}()
+				if _, ok := tableCtx.mark[EndFlag]; ok {
+					startEnd <- struct{}{}
+				}
 				if tableCtx.loop {
 					continue
 				}
 			} else if chosen == chCnt+1 {
 				// 接收到终止信号
 				log.Debugf("Monitor %q exit", p.Monitor)
+				startEnd <- struct{}{}
+			} else if chosen == chCnt+2 {
 				break
 			}
 			cases[chosen].Chan = reflect.ValueOf(nil)
@@ -214,7 +230,7 @@ func dataProcessing(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
 }
 
 func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
-	stop <-chan struct{}) ([]reflect.SelectCase, []string) {
+	stop <-chan struct{}, endNow <-chan struct{}) ([]reflect.SelectCase, []string) {
 	chCnt := len(table2Ctx)
 	cases := make([]reflect.SelectCase, cnt)
 	tableNames := make([]string, chCnt)
@@ -232,9 +248,9 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 		Chan: reflect.ValueOf(ready),
 		Send: reflect.ValueOf(data.NewOtherAnalyseData(data.InvalidStatus, "", nil)),
 	}
-	if idx := chCnt + 1; idx < cnt {
-		cases[idx] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}
-	}
+	cases[chCnt+1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}
+	// 收到停止信号后延迟一段时间
+	cases[chCnt+2] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(endNow)}
 	return cases, tableNames
 }
 

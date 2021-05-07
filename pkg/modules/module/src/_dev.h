@@ -7,6 +7,8 @@
 // @see https://github.com/iovisor/bcc/blob/master/src/cc/export/helpers.h
 #include "include/helpers.h"
 
+#define size_t u32
+
 #define u64 __u64
 #define u32 __u32
 #define u8  __u8

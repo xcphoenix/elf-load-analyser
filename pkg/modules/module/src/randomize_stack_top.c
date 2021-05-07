@@ -12,8 +12,6 @@ BPF_PERF_OUTPUT(randomize_stack_top_events);
 BPF_PERCPU_ARRAY(event_arr, struct randomize_stack_top_event_type, 1);
 
 int kprobe__randomize_stack_top(struct pt_regs *ctx, unsigned long stack_top) {
-    bpf_trace_printk("start at %d", bpf_get_current_pid_tgid() >> 32);
-
     if ((bpf_get_current_pid_tgid() >> 32) != _PID_) {
         return 0;
     }
