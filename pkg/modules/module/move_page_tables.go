@@ -35,7 +35,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__move_page_tables", "move_page_tables", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("move_page_tables_events", modules.RenderHandler(&movePageTablesEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

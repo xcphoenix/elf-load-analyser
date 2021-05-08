@@ -48,5 +48,5 @@ func init() {
 		},
 	})
 	m.RegisterOnceTable("randomize_stack_top_events", modules.RenderHandler(&randomizeStackTopEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"reflect"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
@@ -15,14 +16,20 @@ import (
 var (
 	mutex         sync.Mutex
 	registerMutex sync.Mutex
-	factory       []*modules.MonitorModule
+
+	factoryList []modules.ModuleFactory
+	mmList      []*modules.MonitorModule
 )
 
-func Register(mm *modules.MonitorModule) {
+// Register 注册模块工厂类, mm 为空将被忽略
+func Register(mm modules.ModuleFactory) {
 	registerMutex.Lock()
 	defer registerMutex.Unlock()
 
-	factory = append(factory, mm)
+	if helper.IsNil(mm) {
+		return
+	}
+	factoryList = append(factoryList, mm)
 }
 
 // About memory: https://github.com/iovisor/bcc/issues/1949
@@ -57,7 +64,7 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 		go func() {
 			monitor.PreProcessing(param)
 			m := monitor.DoAction()
-			factory[idx].Resolve(waitMonitorCtx, m, ch)
+			mmList[idx].Resolve(waitMonitorCtx, m, ch)
 			mutex.Lock()
 			m.Close()
 
@@ -70,7 +77,7 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 	go func() {
 		lastMonitor.PreProcessing(param)
 		m := lastMonitor.DoAction()
-		factory[lastIdx].Resolve(rootCtx, m, ch)
+		mmList[lastIdx].Resolve(rootCtx, m, ch)
 		mutex.Lock()
 		m.Close()
 
@@ -91,10 +98,36 @@ func LoadMonitors(param bcc.PreParam) (p *Pool) {
 
 func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int, int) {
 	var lastMonitor *bcc.Monitor
-	monitors := make([]*bcc.Monitor, len(factory))
+	monitors := make([]*bcc.Monitor, len(factoryList))
+
+	var type2Factory = make(map[reflect.Type][]modules.ModuleFactory)
+	for i := range factoryList {
+		var factory = factoryList[i]
+		var factoryType = reflect.TypeOf(factory)
+
+		type2Factory[factoryType] = append(type2Factory[factoryType], factory)
+	}
+
+	var finalFactoryList = make([]modules.ModuleFactory, 0)
+	for _, factoryList := range type2Factory {
+		if len(factoryList) == 0 {
+			continue
+		}
+		var mergeFunc = factoryList[0].Merge
+		var afterMergedFactoryList = mergeFunc(factoryList)
+		for i := range afterMergedFactoryList {
+			if helper.IsNotNil(afterMergedFactoryList[i]) {
+				finalFactoryList = append(finalFactoryList, afterMergedFactoryList[i])
+			}
+		}
+	}
+
+	mmList = make([]*modules.MonitorModule, len(finalFactoryList))
 
 	cnt, lastIdx := 0, -1
-	for idx, mm := range factory {
+	for idx, factory := range finalFactoryList {
+		var mm = factory.Build()
+		mmList[idx] = mm
 		tmpMonitor, end, skip := modules.ModuleInit(mm, param)
 		if skip {
 			continue

@@ -3,6 +3,8 @@ package perf
 import (
 	"context"
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"reflect"
 	"strings"
@@ -56,9 +58,46 @@ func NewPerfResolveMm(m *modules.MonitorModule) *ResolveMm {
 	return perfMm
 }
 
-// Mm 返回实际的模块
-func (p *ResolveMm) Mm() *modules.MonitorModule {
+// Build 返回实际的模块
+func (p *ResolveMm) Build() *modules.MonitorModule {
 	return p.MonitorModule
+}
+
+// Merge 合并模块
+func (p *ResolveMm) Merge(moduleList []modules.ModuleFactory) []modules.ModuleFactory {
+	if len(moduleList) == 0 {
+		return moduleList
+	}
+
+	var finalModules = make([]modules.ModuleFactory, 0)
+	var mergedPerfMm = NewPerfResolveMm(&modules.MonitorModule{
+		Monitor: "~",
+		Source:  "",
+		Events:  make([]*bcc.Event, 0),
+	})
+	for i := range moduleList {
+		perfFactory, ok := moduleList[i].(*ResolveMm)
+		if !ok {
+			continue
+		}
+
+		// 标记为结束状态的模块以及延迟初始化的模块不进行合并
+		if perfFactory.CanMerge && !perfFactory.IsEnd() && perfFactory.LazyInit == nil {
+			mergedPerfMm.Source = strings.Join([]string{mergedPerfMm.Source, perfFactory.Source}, "\n")
+			mergedPerfMm.Events = append(mergedPerfMm.Events, perfFactory.Events...)
+
+			mergedPerfMm.tableIds = append(mergedPerfMm.tableIds, perfFactory.tableIds...)
+			for table, ctx := range perfFactory.table2Ctx {
+				mergedPerfMm.table2Ctx[table] = ctx
+			}
+		} else {
+			finalModules = append(finalModules, perfFactory)
+		}
+	}
+	if len(finalModules) == len(moduleList) {
+		return finalModules
+	}
+	return append(finalModules, mergedPerfMm)
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
@@ -75,7 +114,7 @@ func (p *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) 
 	tableChannel := make(chan []byte)
 	p.tableIds = append(p.tableIds, name)
 	p.table2Ctx[name] = &TableCtx{
-		Name:    fmt.Sprintf("%s@%s", p.Monitor, name),
+		Name:    fmt.Sprintf("%s%s", helper.IfElse(len(p.Monitor) == 0, "", p.Monitor+"@").(string), name),
 		loop:    loop,
 		channel: tableChannel,
 		handler: handler,
@@ -119,7 +158,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	endNow := make(chan struct{})
 
 	chCnt := len(p.table2Ctx)
-	cnt := chCnt + 3
+	cnt := chCnt + 3 // ready stop startStop
 	remaining := cnt
 	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ch, ctx.Done(), endNow)
 
@@ -148,10 +187,10 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 		for remaining > lastRemain {
 			// 返回选择的索引、如果是 recv，返回 value 是否有效，ok 返回 false 表示 channel 被关闭
 			chosen, value, ok := reflect.Select(cases)
+			//goland:noinspection GoLinterLocal
 			if value.IsValid() && ok && chosen < len(tableNames) {
 				tName := tableNames[chosen]
 				tableCtx := p.table2Ctx[tName]
-
 				d := value.Bytes()
 				wg.Add(1)
 				go func() {

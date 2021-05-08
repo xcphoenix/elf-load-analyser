@@ -29,7 +29,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__load_elf_phdrs", "load_elf_phdrs", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("load_elf_phdrs_events", modules.RenderHandler(&loadElfPhdrsEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

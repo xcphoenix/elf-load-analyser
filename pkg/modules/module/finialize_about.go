@@ -62,8 +62,9 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__finalize_exec", "finalize_exec", -1),
 			bcc.NewKprobeEvent("kprobe__start_thread", "start_thread", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("finalize_exec_events", modules.RenderHandler(&finalizeExecEvent{}))
 	m.RegisterOnceTable("start_thread_events", modules.RenderHandler(&startThreadEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

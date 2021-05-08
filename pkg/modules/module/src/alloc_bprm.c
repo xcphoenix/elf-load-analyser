@@ -8,7 +8,7 @@ TDATA(alloc_bprm_event,         // alloc_bprm_event
       uint64_t rlim_cur;        // rlim_cur
       uint64_t rlim_max;        // rlim_max
 );
-BPF_PERF_OUTPUT(call_event);
+BPF_PERF_OUTPUT(alloc_bprm_events);
 BPF_PERCPU_ARRAY(alloc_bprm_array, struct alloc_bprm_event, 1);
 
 int kretprobe__alloc_bprm(struct pt_regs* ctx) {
@@ -33,6 +33,6 @@ int kretprobe__alloc_bprm(struct pt_regs* ctx) {
     e->rlim_max = (uint64_t)rlim_val;
     bpf_probe_read_kernel(&tmp_val, sizeof(bprm->p), (void*)&bprm->p);
     e->cur_top_of_mem = tmp_val;
-    call_event.perf_submit(ctx, e, sizeof(*e));
+    alloc_bprm_events.perf_submit(ctx, e, sizeof(*e));
     return 0;
 }

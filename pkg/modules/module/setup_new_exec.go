@@ -50,8 +50,9 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__setup_new_exec", "setup_new_exec", -1),
 			bcc.NewKretprobeEvent("kretprobe__setup_new_exec", "setup_new_exec", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("setup_new_exec_events", modules.RenderHandler(&setupNewExecEvent{}))
 	m.RegisterOnceTable("setup_new_exec_ret_events", modules.RenderHandler(&setupNewExecRetEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

@@ -44,5 +44,5 @@ func init() {
 	})
 	m.RegisterTable("interp_elf_map_events", true, modules.RenderHandler(&interpElfMapEventType{}))
 	m.RegisterOnceTable("interp_elf_map_prop_events", modules.RenderHandler(&interpElfMapPropEventType{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

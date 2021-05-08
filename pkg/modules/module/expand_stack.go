@@ -38,10 +38,11 @@ func (e expandStackEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "expand_stack",
-		Source:  expandStackSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__expand_stack", "expand_stack", -1)},
+		Monitor:  "expand_stack",
+		Source:   expandStackSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__expand_stack", "expand_stack", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("expand_stack_events", modules.RenderHandler(&expandStackEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

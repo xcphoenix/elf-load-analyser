@@ -24,10 +24,11 @@ func (z flushSignalHandlersEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "flush_signal_handlers",
-		Source:  flushSignalHandlersSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_signal_handlers", "flush_signal_handlers", -1)},
+		Monitor:  "flush_signal_handlers",
+		Source:   flushSignalHandlersSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_signal_handlers", "flush_signal_handlers", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("flush_signal_handlers_events", modules.RenderHandler(&flushSignalHandlersEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

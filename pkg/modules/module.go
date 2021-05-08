@@ -28,9 +28,18 @@ type EventResult interface {
 	Render() *data.AnalyseData
 }
 
+// ModuleResolver 模块解析
 type ModuleResolver interface {
 	// Resolve 解析、发送处理结果
 	Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData)
+}
+
+// ModuleFactory 模块构造器
+type ModuleFactory interface {
+	// Build 创建模块
+	Build() *MonitorModule
+	// Merge 合并模块, moduleList 中的元素不为空
+	Merge(moduleList []ModuleFactory) []ModuleFactory
 }
 
 // MonitorModule 模块抽象接口
@@ -46,6 +55,8 @@ type MonitorModule struct {
 	Events []*bcc.Event
 	// IsEnd 是否标记为最后
 	IsEnd bool
+	// CanMerge 是否可以与其他 MonitorModule 合并
+	CanMerge bool
 	// LazyInit 延迟初始化
 	LazyInit func(mm *MonitorModule, param bcc.PreParam) bool
 }

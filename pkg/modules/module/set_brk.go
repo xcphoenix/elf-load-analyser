@@ -61,10 +61,11 @@ func (s setBrkEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "set_brk",
-		Source:  setBrkSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__set_brk", "set_brk", -1)},
+		Monitor:  "set_brk",
+		Source:   setBrkSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__set_brk", "set_brk", -1)},
+		CanMerge: true,
 	})
 	m.RegisterTable("set_brk_events", true, modules.RenderHandler(&setBrkEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

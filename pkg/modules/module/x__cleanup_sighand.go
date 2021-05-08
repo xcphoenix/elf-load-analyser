@@ -26,9 +26,10 @@ func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
 		Monitor: "unshare_sighand",
 		// __cleanup_sighand 是 unshare_sighand 的最后一步，由于无法监控 unshare_sighand 函数，这里用 __clean_sighand 来替代
-		Source: xCleanupSighandSource,
-		Events: []*bcc.Event{bcc.NewKprobeEvent("kprobe__x__cleanup_sighand", "__cleanup_sighand", -1)},
+		Source:   xCleanupSighandSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__x__cleanup_sighand", "__cleanup_sighand", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("cleanup_sighand_events", modules.RenderHandler(&xCleanupSighandEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

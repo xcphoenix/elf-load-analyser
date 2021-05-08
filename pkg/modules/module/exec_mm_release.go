@@ -24,10 +24,11 @@ func (e execMmReleaseEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "exec_mm_release",
-		Source:  execMmReleaseSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__exec_mm_release", "exec_mm_release", -1)},
+		Monitor:  "exec_mm_release",
+		Source:   execMmReleaseSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__exec_mm_release", "exec_mm_release", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("exec_mm_release_events", modules.RenderHandler(&execMmReleaseEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

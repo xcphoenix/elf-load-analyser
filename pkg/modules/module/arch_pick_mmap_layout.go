@@ -33,7 +33,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKretprobeEvent("kretprobe__arch_pick_mmap_layout", "arch_pick_mmap_layout", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("arch_pick_mmap_layout_events", modules.RenderHandler(&archPickMmapLayoutEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

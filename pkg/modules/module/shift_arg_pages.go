@@ -34,10 +34,11 @@ func (s shiftArgPagesEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "shift_arg_pages",
-		Source:  shiftArgPagesSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__shift_arg_pages", "shift_arg_pages", -1)},
+		Monitor:  "shift_arg_pages",
+		Source:   shiftArgPagesSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__shift_arg_pages", "shift_arg_pages", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("shift_arg_pages_events", modules.RenderHandler(&shiftArgPagesEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

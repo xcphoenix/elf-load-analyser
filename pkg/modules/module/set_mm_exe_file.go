@@ -32,7 +32,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__set_mm_exe_file", "set_mm_exe_file", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("set_mm_exe_file_events", modules.RenderHandler(&setMMExeFileEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

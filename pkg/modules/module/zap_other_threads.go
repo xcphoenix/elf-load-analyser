@@ -24,10 +24,11 @@ func (z zapOtherThreadEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "zap_other_threads",
-		Source:  zapOtherThreadsSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__zap_other_threads", "zap_other_threads", -1)},
+		Monitor:  "zap_other_threads",
+		Source:   zapOtherThreadsSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__zap_other_threads", "zap_other_threads", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("zap_other_threads_events", modules.RenderHandler(&zapOtherThreadEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

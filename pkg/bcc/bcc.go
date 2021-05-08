@@ -69,7 +69,8 @@ type Monitor struct {
 	events       []*Event
 	event2Action map[*Event]*action
 	Name         string
-	Source       string // 模块源
+	Source       string
+	HeaderDirs   []string // 头文件路径
 	CFlags       []string
 }
 
@@ -91,7 +92,6 @@ func (m *Monitor) PreProcessing(ctx PreParam) {
 	for _, event := range m.events {
 		m.event2Action[event] = &event.action
 	}
-	// PID replace
 	m.Source = strings.ReplaceAll(m.Source, "_PID_", strconv.Itoa(ctx.Pid))
 }
 

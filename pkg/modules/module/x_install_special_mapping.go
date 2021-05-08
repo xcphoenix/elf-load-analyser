@@ -38,7 +38,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__x_install_special_mapping", "_install_special_mapping", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterTable("x_install_special_mapping_events", true, modules.RenderHandler(&xInstallSpecialMappingEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

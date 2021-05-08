@@ -59,5 +59,5 @@ func init() {
 	m.RegisterOnceTable("tlb_gather_mmu_events", modules.RenderHandler(&tlbAboutEvent{}))
 	m.RegisterOnceTable("tlb_finish_mmu_events", modules.RenderHandler(&tlbAboutEvent{}))
 	m.RegisterOnceTable("free_pgd_range_events", modules.RenderHandler(&freePgdRangeEventType{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

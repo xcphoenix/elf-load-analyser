@@ -75,5 +75,5 @@ func init() {
 		},
 	})
 	m.RegisterTable("vm_brk_flags_events", true, modules.RenderHandler(&vmBrkFlagsEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

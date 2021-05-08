@@ -50,5 +50,5 @@ func init() {
 		},
 	})
 	m.RegisterTable("x__vma_adjust_events", true, modules.RenderHandler(&xVmaAdjustEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

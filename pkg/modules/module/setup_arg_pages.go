@@ -72,5 +72,5 @@ func init() {
 		},
 	})
 	m.RegisterOnceTable("setup_arg_pages_events", modules.RenderHandler(&setupArgPageEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

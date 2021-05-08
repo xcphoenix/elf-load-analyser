@@ -24,10 +24,11 @@ func (z doCloseOnExecEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "do_close_on_exec",
-		Source:  doCloseOnExecSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__do_close_on_exec", "do_close_on_exec", -1)},
+		Monitor:  "do_close_on_exec",
+		Source:   doCloseOnExecSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__do_close_on_exec", "do_close_on_exec", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("do_close_on_exec_events", modules.RenderHandler(&doCloseOnExecEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

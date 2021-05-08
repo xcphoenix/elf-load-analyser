@@ -2,15 +2,15 @@
 
 #include "common.h"
 
-TDATA(begin_new_exec_event_type, TEMPTY);
-BPF_PERF_OUTPUT(call_event);
+TDATA(bprm_execve_event, TEMPTY);
+BPF_PERF_OUTPUT(bprm_execve_events);
 
 int kprobe__bprm_execve(struct pt_regs* ctx) {
     if ((bpf_get_current_pid_tgid() >> 32) != _PID_) {
         return 0;
     }
-    struct begin_new_exec_event_type event = {};
+    struct bprm_execve_event event = {};
     init_tdata(&event);
-    call_event.perf_submit((void*)ctx, &event, sizeof(event));
+    bprm_execve_events.perf_submit((void*)ctx, &event, sizeof(event));
     return 0;
 }

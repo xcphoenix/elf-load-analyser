@@ -24,10 +24,11 @@ func (z flushThreadEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "flush_thread",
-		Source:  flushThreadSource,
-		Events:  []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_thread", "flush_thread", -1)},
+		Monitor:  "flush_thread",
+		Source:   flushThreadSource,
+		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_thread", "flush_thread", -1)},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("flush_thread_events", modules.RenderHandler(&flushThreadEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

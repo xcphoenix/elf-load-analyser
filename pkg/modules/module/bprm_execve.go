@@ -29,7 +29,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1),
 		},
+		CanMerge: true,
 	})
-	m.RegisterOnceTable("call_event", modules.RenderHandler(&bprmExecveEvent{}))
-	factory.Register(m.Mm())
+	m.RegisterOnceTable("bprm_execve_events", modules.RenderHandler(&bprmExecveEvent{}))
+	factory.Register(m)
 }

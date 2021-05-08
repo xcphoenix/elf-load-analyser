@@ -51,7 +51,8 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__begin_new_exec", "begin_new_exec", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterOnceTable("begin_new_exec_events", modules.RenderHandler(&beginNewExecEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

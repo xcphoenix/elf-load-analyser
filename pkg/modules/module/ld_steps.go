@@ -169,5 +169,5 @@ func init() {
 	// m.RegisterTable("mmap_events", true, modules.RenderHandler(&MmapEvent{}))
 
 	m.SetMark("start_user_prog_events", perf.EndFlag)
-	factory.Register(m.Mm())
+	factory.Register(m)
 }

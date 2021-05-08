@@ -48,8 +48,9 @@ func init() {
 		Events: []*bcc.Event{
 			bcc.NewKretprobeEvent("kretprobe__alloc_bprm", "alloc_bprm", -1),
 		},
-		IsEnd: false,
+		IsEnd:    false,
+		CanMerge: true,
 	})
-	m.RegisterOnceTable("call_event", modules.RenderHandler(&allocBprmEvent{}))
-	factory.Register(m.Mm())
+	m.RegisterOnceTable("alloc_bprm_events", modules.RenderHandler(&allocBprmEvent{}))
+	factory.Register(m)
 }

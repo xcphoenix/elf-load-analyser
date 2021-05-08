@@ -49,7 +49,8 @@ func init() {
 			bcc.NewKretprobeEvent("kretprobe__arch_randomize_brk", "arch_randomize_brk", -1),
 			bcc.NewKretprobeEvent("kretprobe__arch_setup_additional_pages", "arch_setup_additional_pages", -1),
 		},
+		CanMerge: true,
 	})
 	m.RegisterTable("arch_randomize_brk_events", true, modules.RenderHandler(&archRandomizeBrkEvent{}))
-	factory.Register(m.Mm())
+	factory.Register(m)
 }
