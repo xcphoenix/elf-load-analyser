@@ -170,7 +170,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 
 	go func() {
 		<-startEnd
-		<-time.After(1000 * time.Millisecond)
+		<-time.After(500 * time.Millisecond)
 		endNow <- struct{}{}
 	}()
 
@@ -221,9 +221,11 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	log.Infof("Monitor %s start...", p.Monitor)
 	<-finish
 	// FIXME cannot stop on sometimes
-	for idx, perfMap := range perfMaps {
-		blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500*2)
-	}
+	go func() {
+		for idx, perfMap := range perfMaps {
+			blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500)
+		}
+	}()
 	log.Infof("Monitor %s stop", p.Monitor)
 }
 

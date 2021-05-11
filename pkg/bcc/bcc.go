@@ -70,7 +70,6 @@ type Monitor struct {
 	event2Action map[*Event]*action
 	Name         string
 	Source       string
-	HeaderDirs   []string // 头文件路径
 	CFlags       []string
 }
 

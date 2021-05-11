@@ -5,6 +5,7 @@ import (
 	"errors"
 	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/enhance" // import plugin handlers
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
+	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xfs"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
@@ -32,6 +33,11 @@ func PreAnalyse(param *bcc.PreParam) {
 		}
 	}
 	param.Header, param.IsDyn, param.Interp = elfRender.elfData()
+
+	// cache inode
+	_, _ = xfs.FileINode(param.Path)
+	_, _ = xfs.FileINode(param.Interp)
+
 	d, _ = doRender(elfRender)
 	dataCenter[1] = d
 }
