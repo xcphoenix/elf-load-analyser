@@ -29,6 +29,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_signal_handlers", "flush_signal_handlers", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("flush_signal_handlers_events", modules.RenderHandler(&flushSignalHandlersEvent{}))
+	m.RegisterOnceTable("flush_signal_handlers_events", modules.RenderHandler(flushSignalHandlersEvent{}, nil))
 	factory.Register(m)
 }

@@ -159,13 +159,13 @@ func init() {
 			return !mm.IsEnd
 		},
 	})
-	m.RegisterOnceTable("bootstrap_finished_events", modules.RenderHandler(&bootstrapStepEvent{}))
-	m.RegisterOnceTable("start_user_prog_events", modules.RenderHandler(&startUserProgEvent{}))
-	m.RegisterTable("protect_relro_events", true, modules.RenderHandler(&protectRelroEvent{}))
+	m.RegisterOnceTable("bootstrap_finished_events", modules.RenderHandler(bootstrapStepEvent{}, nil))
+	m.RegisterOnceTable("start_user_prog_events", modules.RenderHandler(startUserProgEvent{}, nil))
+	m.RegisterTable("protect_relro_events", true, modules.RenderHandler(protectRelroEvent{}, nil))
 
-	m.RegisterTable("mprotect_events", true, modules.RenderHandler(&normalMprotectEvent{}))
+	m.RegisterTable("mprotect_events", true, modules.RenderHandler(normalMprotectEvent{}, nil))
 
-	m.RegisterTable("map_object_events", true, modules.RenderHandler(&mapObjectFromFdEvent{}))
+	m.RegisterTable("map_object_events", true, modules.RenderHandler(mapObjectFromFdEvent{}, nil))
 	// m.RegisterTable("mmap_events", true, modules.RenderHandler(&MmapEvent{}))
 
 	m.SetMark("start_user_prog_events", perf.EndFlag)

@@ -49,6 +49,6 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__x__vma_adjust", "__vma_adjust", -1),
 		},
 	})
-	m.RegisterTable("x__vma_adjust_events", true, modules.RenderHandler(&xVmaAdjustEvent{}))
+	m.RegisterTable("x__vma_adjust_events", true, modules.RenderHandler(xVmaAdjustEvent{}, nil))
 	factory.Register(m)
 }

@@ -52,6 +52,6 @@ func init() {
 		},
 	})
 
-	m.RegisterOnceTable("mprotect_fixup_events", modules.RenderHandler(&mprotectFixupEvent{}))
+	m.RegisterOnceTable("mprotect_fixup_events", modules.RenderHandler(mprotectFixupEvent{}, nil))
 	factory.Register(m)
 }

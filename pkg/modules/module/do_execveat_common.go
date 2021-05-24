@@ -40,6 +40,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("exec_events", modules.RenderHandler(&execveatComEvent{}))
+	m.RegisterOnceTable("exec_events", modules.RenderHandler(execveatComEvent{}, nil))
 	factory.Register(m)
 }

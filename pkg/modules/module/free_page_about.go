@@ -56,8 +56,8 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__free_pgd_range", "free_pgd_range", -1),
 		},
 	})
-	m.RegisterOnceTable("tlb_gather_mmu_events", modules.RenderHandler(&tlbAboutEvent{}))
-	m.RegisterOnceTable("tlb_finish_mmu_events", modules.RenderHandler(&tlbAboutEvent{}))
-	m.RegisterOnceTable("free_pgd_range_events", modules.RenderHandler(&freePgdRangeEventType{}))
+	m.RegisterOnceTable("tlb_gather_mmu_events", modules.RenderHandler(tlbAboutEvent{}, nil))
+	m.RegisterOnceTable("tlb_finish_mmu_events", modules.RenderHandler(tlbAboutEvent{}, nil))
+	m.RegisterOnceTable("free_pgd_range_events", modules.RenderHandler(freePgdRangeEventType{}, nil))
 	factory.Register(m)
 }

@@ -43,6 +43,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__expand_stack", "expand_stack", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("expand_stack_events", modules.RenderHandler(&expandStackEvent{}))
+	m.RegisterOnceTable("expand_stack_events", modules.RenderHandler(expandStackEvent{}, nil))
 	factory.Register(m)
 }

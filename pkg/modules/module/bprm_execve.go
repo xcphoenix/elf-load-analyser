@@ -31,6 +31,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("bprm_execve_events", modules.RenderHandler(&bprmExecveEvent{}))
+	m.RegisterOnceTable("bprm_execve_events", modules.RenderHandler(bprmExecveEvent{}, nil))
 	factory.Register(m)
 }

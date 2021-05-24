@@ -39,6 +39,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__shift_arg_pages", "shift_arg_pages", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("shift_arg_pages_events", modules.RenderHandler(&shiftArgPagesEvent{}))
+	m.RegisterOnceTable("shift_arg_pages_events", modules.RenderHandler(shiftArgPagesEvent{}, nil))
 	factory.Register(m)
 }

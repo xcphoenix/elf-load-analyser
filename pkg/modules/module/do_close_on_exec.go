@@ -29,6 +29,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__do_close_on_exec", "do_close_on_exec", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("do_close_on_exec_events", modules.RenderHandler(&doCloseOnExecEvent{}))
+	m.RegisterOnceTable("do_close_on_exec_events", modules.RenderHandler(doCloseOnExecEvent{}, nil))
 	factory.Register(m)
 }

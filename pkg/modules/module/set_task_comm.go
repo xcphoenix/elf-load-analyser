@@ -30,6 +30,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__x__set_task_comm", "__set_task_comm", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("x__set_task_comm_events", modules.RenderHandler(&xSetTaskCommEvent{}))
+	m.RegisterOnceTable("x__set_task_comm_events", modules.RenderHandler(xSetTaskCommEvent{}, nil))
 	factory.Register(m)
 }

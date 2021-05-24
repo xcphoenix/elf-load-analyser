@@ -37,6 +37,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("move_page_tables_events", modules.RenderHandler(&movePageTablesEvent{}))
+	m.RegisterOnceTable("move_page_tables_events", modules.RenderHandler(movePageTablesEvent{}, nil))
 	factory.Register(m)
 }

@@ -34,6 +34,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("set_mm_exe_file_events", modules.RenderHandler(&setMMExeFileEvent{}))
+	m.RegisterOnceTable("set_mm_exe_file_events", modules.RenderHandler(setMMExeFileEvent{}, nil))
 	factory.Register(m)
 }

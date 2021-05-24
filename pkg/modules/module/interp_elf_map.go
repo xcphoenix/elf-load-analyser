@@ -42,7 +42,7 @@ func init() {
 			return !param.IsDyn
 		},
 	})
-	m.RegisterTable("interp_elf_map_events", true, modules.RenderHandler(&interpElfMapEventType{}))
-	m.RegisterOnceTable("interp_elf_map_prop_events", modules.RenderHandler(&interpElfMapPropEventType{}))
+	m.RegisterTable("interp_elf_map_events", true, modules.RenderHandler(interpElfMapEventType{}, nil))
+	m.RegisterOnceTable("interp_elf_map_prop_events", modules.RenderHandler(interpElfMapPropEventType{}, nil))
 	factory.Register(m)
 }

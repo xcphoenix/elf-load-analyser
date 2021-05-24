@@ -34,7 +34,7 @@ func (f finalizeExecEvent) Render() *data.AnalyseData {
 		form.NewMarkdown("在将执行权交给用户程序或解释器前,存储栈资源限制"),
 	)
 	return data.NewAnalyseData(res).
-		PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatrixEvent("Start_brk", f.StartStack))
+		PutExtra(virtualm.VmaFlag, virtualm.NewVMIndicatrixEvent("StartStack", f.StartStack))
 }
 
 type startThreadEvent struct {
@@ -64,7 +64,7 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("finalize_exec_events", modules.RenderHandler(&finalizeExecEvent{}))
-	m.RegisterOnceTable("start_thread_events", modules.RenderHandler(&startThreadEvent{}))
+	m.RegisterOnceTable("finalize_exec_events", modules.RenderHandler(finalizeExecEvent{}, nil))
+	m.RegisterOnceTable("start_thread_events", modules.RenderHandler(startThreadEvent{}, nil))
 	factory.Register(m)
 }

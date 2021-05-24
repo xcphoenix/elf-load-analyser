@@ -40,6 +40,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterTable("x_install_special_mapping_events", true, modules.RenderHandler(&xInstallSpecialMappingEvent{}))
+	m.RegisterTable("x_install_special_mapping_events", true, modules.RenderHandler(xInstallSpecialMappingEvent{}, nil))
 	factory.Register(m)
 }

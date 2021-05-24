@@ -29,6 +29,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__zap_other_threads", "zap_other_threads", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("zap_other_threads_events", modules.RenderHandler(&zapOtherThreadEvent{}))
+	m.RegisterOnceTable("zap_other_threads_events", modules.RenderHandler(zapOtherThreadEvent{}, nil))
 	factory.Register(m)
 }

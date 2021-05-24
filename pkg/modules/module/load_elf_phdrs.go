@@ -31,6 +31,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("load_elf_phdrs_events", modules.RenderHandler(&loadElfPhdrsEvent{}))
+	m.RegisterOnceTable("load_elf_phdrs_events", modules.RenderHandler(loadElfPhdrsEvent{}, nil))
 	factory.Register(m)
 }

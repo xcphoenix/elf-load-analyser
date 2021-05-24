@@ -92,7 +92,7 @@ func init() {
 			return false
 		},
 	})
-	m.RegisterTable("elf_map_events", true, modules.RenderHandler(&elfMapEventType{}))
-	m.RegisterOnceTable("elf_map_prop_events", modules.RenderHandler(&elfMapPropEventType{}))
+	m.RegisterTable("elf_map_events", true, modules.RenderHandler(elfMapEventType{}, nil))
+	m.RegisterOnceTable("elf_map_prop_events", modules.RenderHandler(elfMapPropEventType{}, nil))
 	factory.Register(m)
 }

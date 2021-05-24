@@ -29,6 +29,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__exec_mm_release", "exec_mm_release", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("exec_mm_release_events", modules.RenderHandler(&execMmReleaseEvent{}))
+	m.RegisterOnceTable("exec_mm_release_events", modules.RenderHandler(execMmReleaseEvent{}, nil))
 	factory.Register(m)
 }

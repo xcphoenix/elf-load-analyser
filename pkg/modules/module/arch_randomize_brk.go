@@ -51,6 +51,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterTable("arch_randomize_brk_events", true, modules.RenderHandler(&archRandomizeBrkEvent{}))
+	m.RegisterTable("arch_randomize_brk_events", true, modules.RenderHandler(archRandomizeBrkEvent{}, nil))
 	factory.Register(m)
 }

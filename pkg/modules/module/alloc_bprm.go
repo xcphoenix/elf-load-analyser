@@ -51,6 +51,6 @@ func init() {
 		IsEnd:    false,
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("alloc_bprm_events", modules.RenderHandler(&allocBprmEvent{}))
+	m.RegisterOnceTable("alloc_bprm_events", modules.RenderHandler(allocBprmEvent{}, nil))
 	factory.Register(m)
 }

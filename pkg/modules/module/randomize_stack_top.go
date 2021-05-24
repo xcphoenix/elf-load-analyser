@@ -47,6 +47,6 @@ func init() {
 			bcc.NewKretprobeEvent("kretprobe__randomize_stack_top", "randomize_stack_top", -1),
 		},
 	})
-	m.RegisterOnceTable("randomize_stack_top_events", modules.RenderHandler(&randomizeStackTopEvent{}))
+	m.RegisterOnceTable("randomize_stack_top_events", modules.RenderHandler(randomizeStackTopEvent{}, nil))
 	factory.Register(m)
 }

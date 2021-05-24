@@ -81,13 +81,24 @@ func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool
 	return m, mm.IsEnd, false
 }
 
-func RenderHandler(event EventResult) func(data []byte) (*data.AnalyseData, error) {
+func RenderHandler(event EventResult, eventBuilder func() EventResult) func(data []byte) (*data.AnalyseData, error) {
+	if eventBuilder == nil {
+		var eventType = reflect.TypeOf(event)
+		if eventType.Kind() == reflect.Ptr {
+			eventType = eventType.Elem()
+		}
+
+		eventBuilder = func() EventResult {
+			return reflect.New(eventType).Interface().(EventResult)
+		}
+	}
 	return func(data []byte) (*data.AnalyseData, error) {
-		return Render(data, event)
+		return Render(data, eventBuilder)
 	}
 }
 
-func Render(d []byte, event EventResult) (*data.AnalyseData, error) {
+func Render(d []byte, eventBuilder func() EventResult) (*data.AnalyseData, error) {
+	var event = eventBuilder()
 	err := binary.Read(bytes.NewBuffer(d), bpf.GetHostByteOrder(), event)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode received data to %q, %w",

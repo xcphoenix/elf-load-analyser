@@ -29,6 +29,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_thread", "flush_thread", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("flush_thread_events", modules.RenderHandler(&flushThreadEvent{}))
+	m.RegisterOnceTable("flush_thread_events", modules.RenderHandler(flushThreadEvent{}, nil))
 	factory.Register(m)
 }

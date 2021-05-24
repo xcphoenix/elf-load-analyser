@@ -66,6 +66,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__set_brk", "set_brk", -1)},
 		CanMerge: true,
 	})
-	m.RegisterTable("set_brk_events", true, modules.RenderHandler(&setBrkEvent{}))
+	m.RegisterTable("set_brk_events", true, modules.RenderHandler(setBrkEvent{}, nil))
 	factory.Register(m)
 }

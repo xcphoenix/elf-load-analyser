@@ -74,6 +74,6 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__vma_link", "vma_link", -1),
 		},
 	})
-	m.RegisterTable("vm_brk_flags_events", true, modules.RenderHandler(&vmBrkFlagsEvent{}))
+	m.RegisterTable("vm_brk_flags_events", true, modules.RenderHandler(vmBrkFlagsEvent{}, nil))
 	factory.Register(m)
 }

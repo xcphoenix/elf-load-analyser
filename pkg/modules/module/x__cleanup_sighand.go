@@ -30,6 +30,6 @@ func init() {
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__x__cleanup_sighand", "__cleanup_sighand", -1)},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("cleanup_sighand_events", modules.RenderHandler(&xCleanupSighandEvent{}))
+	m.RegisterOnceTable("cleanup_sighand_events", modules.RenderHandler(xCleanupSighandEvent{}, nil))
 	factory.Register(m)
 }

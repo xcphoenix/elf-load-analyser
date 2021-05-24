@@ -71,6 +71,6 @@ func init() {
 			bcc.NewKretprobeEvent("kretprobe__arch_align_stack", "arch_align_stack", -1),
 		},
 	})
-	m.RegisterOnceTable("setup_arg_pages_events", modules.RenderHandler(&setupArgPageEvent{}))
+	m.RegisterOnceTable("setup_arg_pages_events", modules.RenderHandler(setupArgPageEvent{}, nil))
 	factory.Register(m)
 }

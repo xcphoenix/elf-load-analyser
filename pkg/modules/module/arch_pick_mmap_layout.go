@@ -35,6 +35,6 @@ func init() {
 		},
 		CanMerge: true,
 	})
-	m.RegisterOnceTable("arch_pick_mmap_layout_events", modules.RenderHandler(&archPickMmapLayoutEvent{}))
+	m.RegisterOnceTable("arch_pick_mmap_layout_events", modules.RenderHandler(archPickMmapLayoutEvent{}, nil))
 	factory.Register(m)
 }
