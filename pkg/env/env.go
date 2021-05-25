@@ -30,21 +30,23 @@ func GetSysOS() string {
 
 // GetKernelVersion get linux version
 func GetKernelVersion() string {
-	once.Do(extraKernelVersion)
+	once.Do(func() {
+		kernelVersion = getKernelVersion(kernelReleaseFile)
+	})
 	return kernelVersion
 }
 
 // ValidateKernelConfigs get kernel configs from kernelConfigGzFile
-func ValidateKernelConfigs(target ...string) bool {
-	file, err := os.Open(kernelConfigGzFile)
+func ValidateKernelConfigs(configGzFile string, target ...string) bool {
+	file, err := os.Open(configGzFile)
 	if err != nil {
-		log.Errorf("Open config file %q failed, %v", kernelConfigGzFile, err)
+		log.Errorf("Open config file %q failed, %v", configGzFile, err)
 	}
 	defer func() { _ = file.Close() }()
 
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		log.Errorf("Reset file %q err, %v", kernelConfigGzFile, err)
+		log.Errorf("Reset file %q err, %v", configGzFile, err)
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer reader.Close()
@@ -75,20 +77,26 @@ func ValidateKernelConfigs(target ...string) bool {
 	return configLen == 0
 }
 
-func extraKernelVersion() {
+func getKernelVersion(releaseFile string) string {
 	// check env type
 	helper.EqualWithTip("linux", GetSysOS(), "Unsupported env, the toolkit just for linux")
 
-	file, err := os.Open(kernelReleaseFile)
+	file, err := os.Open(releaseFile)
 	if err != nil {
-		log.Errorf("Open release file %q failed, %v", kernelReleaseFile, err)
+		log.Errorf("Open release file %q failed, %v", releaseFile, err)
 	}
 	defer file.Close()
+
 	release, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Errorf("Read %q failed, %v", kernelReleaseFile, err)
+		log.Errorf("Read %q failed, %v", releaseFile, err)
 	}
-	kernelVersion = strings.TrimSpace(string(release))
+
+	var version = strings.TrimSpace(string(release))
+	if idx := strings.IndexRune(version, '-'); idx > 0 {
+		version = version[:idx]
+	}
+	return version
 }
 
 func equalCharFunc(r rune) bool {

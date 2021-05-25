@@ -36,7 +36,7 @@ func CheckEnv() {
 	}
 
 	// Check kernel config
-	if !ValidateKernelConfigs(requiredConfigs...) {
+	if !ValidateKernelConfigs(kernelConfigGzFile, requiredConfigs...) {
 		log.Errorf(generalConfigTip())
 	}
 }
