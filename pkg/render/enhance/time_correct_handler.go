@@ -1,7 +1,6 @@
 package enhance
 
 import (
-	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
@@ -9,10 +8,7 @@ import (
 	"time"
 )
 
-const (
-	StartMark       = "_START_"
-	kernelBootNsKey = "_ns_"
-)
+const kernelBootNsKey = "_ns_"
 
 func init() {
 	plugin.RegisterPlugin(&timeCorrectPlugin{}, 0x10)
@@ -46,57 +42,52 @@ func amendTime(ts uint64, timeAmend *nsMap) time.Time {
 type timeCorrectPlugin struct{}
 
 func (t timeCorrectPlugin) Handle(dataCollection []*data.AnalyseData) ([]*data.AnalyseData, []plugin.ReqHandler) {
+	type NsDataPair struct {
+		nsData *data.AnalyseData
+		ns     uint64
+	}
+
 	var timeAmend *nsMap
-	var startIdx = -1
+	var noNsDataList []*data.AnalyseData
+	var withNsDataList []NsDataPair
 
-	for i, aData := range dataCollection {
-		if exist, ns, err := parseDataNsKey(aData, kernelBootNsKey); exist {
-			if err != nil {
-				log.Warn(err)
-				break
-			}
-			if _, ok := aData.ExtraByKey(StartMark); ok {
-				startIdx = i
+	// split
+	for i := range dataCollection {
+		var ns uint64
+		v, ok := dataCollection[i].ExtraByKey(kernelBootNsKey)
+		if ok {
+			ns, ok = v.(uint64)
+		}
+		if ok {
+			withNsDataList = append(withNsDataList, NsDataPair{dataCollection[i], ns})
+		} else {
+			noNsDataList = append(noNsDataList, dataCollection[i])
+		}
+	}
+
+	dataCollection = noNsDataList
+
+	if len(withNsDataList) > 0 {
+		// sort
+		sort.Slice(withNsDataList, func(i, j int) bool {
+			return withNsDataList[i].ns < withNsDataList[j].ns
+		})
+
+		// amend
+		for i := range withNsDataList {
+			aData, ns := withNsDataList[i].nsData, withNsDataList[i].ns
+			dataCollection = append(dataCollection, aData)
+			if i == 0 {
 				timeAmend = newNsMap(ns, time.Time(aData.XTime))
-				break
-			}
-		}
-	}
-
-	if startIdx < 0 {
-		log.Warnf("Time correct mark not found, ignore!")
-		return dataCollection, nil
-	}
-
-	for i, aData := range dataCollection {
-		if i == startIdx {
-			continue
-		}
-		if exist, ns, err := parseDataNsKey(aData, kernelBootNsKey); exist {
-			if err != nil {
-				log.Warn(err)
 				continue
 			}
 			aData.XTime = data.JSONTime(amendTime(ns, timeAmend))
-		} else {
-			log.Warnf("Ns field not found, %v", aData)
 		}
 	}
 
+	// sort
 	sort.Slice(dataCollection, func(i, j int) bool {
 		return time.Time(dataCollection[i].XTime).Before(time.Time(dataCollection[j].XTime))
 	})
 	return dataCollection, nil
-}
-
-func parseDataNsKey(d *data.AnalyseData, nsKey string) (bool, uint64, error) {
-	v, ok := d.ExtraByKey(nsKey)
-	if !ok {
-		return false, 0, nil
-	}
-
-	if v, ok := v.(uint64); ok {
-		return true, v, nil
-	}
-	return true, 0, fmt.Errorf("ns data is not uint64 type")
 }
