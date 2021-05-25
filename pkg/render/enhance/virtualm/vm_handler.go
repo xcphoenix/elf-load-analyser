@@ -2,6 +2,7 @@ package virtualm
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/log"
@@ -9,9 +10,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	_ "embed" // embed for step js func
 )
 
-const VmaFlag = "_VMA_"
+const (
+	VmaFlag = "_VMA_"
+
+	vmIdxFlag = "_X_IDX_"
+)
+
+//go:embed vm_step.txt
+var stepJsFunc string
 
 func init() {
 	plugin.RegisterPlugin(newVMShowDataHandler(), 0x100)
@@ -29,6 +39,7 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 	vm := newVirtualMemory()
 	const apiPrefix = "/vm/model/"
 	cnt := 0
+	var lastIdx = new(int)
 
 	var vmHandlers []plugin.ReqHandler
 	for _, analyseData := range dataCollection {
@@ -50,7 +61,19 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 					if err != nil {
 						log.Warnf("Render vm model failed, %v", err)
 					}
-					v.htmlCache[url] = buf.Bytes()
+
+					// 暴力添加自定义 js go-echarts添加自定义函数会被无情转义...
+					var bufBytes = buf.Bytes()
+					var idx = strings.LastIndex(url, "/")
+					if idx >= 0 {
+						var curIdx = url[idx+1:]
+						replacedStr := strings.Replace(string(bufBytes), "</body>", "<script>"+
+							fmt.Sprintf(stepJsFunc, curIdx, *lastIdx)+
+							"</script></body>", 1)
+						bufBytes = []byte(replacedStr)
+					}
+
+					v.htmlCache[url] = bufBytes
 				}
 				_, err := w.Write(v.htmlCache[url])
 				if err != nil {
@@ -69,5 +92,8 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 			})
 		}
 	}
+
+	*lastIdx = cnt - 1
+
 	return dataCollection, append(vmHandlers, BuildAssertReqHandler()...)
 }

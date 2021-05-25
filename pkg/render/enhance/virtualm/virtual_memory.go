@@ -270,7 +270,6 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 
 	fn := fmt.Sprintf(jsFnFormatter, vmBar.ChartID)
 	vmBar.AddJSFuncs(fn)
-
 	return vmBar
 }
 
