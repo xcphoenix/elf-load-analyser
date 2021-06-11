@@ -16,8 +16,6 @@ import (
 
 const (
 	VmaFlag = "_VMA_"
-
-	vmIdxFlag = "_X_IDX_"
 )
 
 //go:embed vm_step.txt

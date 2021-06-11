@@ -6,7 +6,6 @@ TDATA(randomize_stack_top_event_type,  // randomize
       u64 stack_top;                   // stack_top
       u64 stack_top_aligned;           // stack_top after page aligned
       u64 actual_stack_top;            // ret val
-      // actual_stack_top - stack_top_aligend random_variable
 );
 BPF_PERF_OUTPUT(randomize_stack_top_events);
 BPF_PERCPU_ARRAY(event_arr, struct randomize_stack_top_event_type, 1);

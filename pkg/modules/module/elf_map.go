@@ -4,6 +4,7 @@ import (
 	_ "embed" // for embed bcc source
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
+	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance/virtualm"
 	"strconv"
 	"strings"
 
@@ -21,9 +22,20 @@ import (
 //go:embed src/elf_map.c.k
 var elfMapSource string
 
+var elfFilePath string
+
 type elfMapEventType struct {
 	enhance.TimeEventResult
 	commonElfMapEventType
+}
+
+func (e elfMapEventType) Render() *data.AnalyseData {
+	var result = e.commonElfMapEventType.Render()
+	var event = virtualm.MapVmaEvent{
+		// ps: 第一次 elf_map 会先映射整体，所以不能直接用 v.VmaEnd
+		NewVma: virtualm.BuildVma(e.VmaStart, e.VmaStart+e.Size, e.VmaFlags, e.Off, elfFilePath),
+	}
+	return result.PutExtra(virtualm.VmaFlag, event)
 }
 
 type elfMapPropEventType struct {
@@ -87,6 +99,7 @@ func init() {
 			bcc.NewKprobeEvent("kprobe__vma_link", "vma_link", -1),
 		},
 		LazyInit: func(mm *modules.MonitorModule, param bcc.PreParam) bool {
+			elfFilePath = param.Path
 			mm.Source = strings.ReplaceAll(mm.Source, "_ISDYN_", helper.IfElse(param.IsDyn, "1", "0").(string))
 			mm.Source = strings.ReplaceAll(mm.Source, "_ENTRY_", strconv.FormatUint(param.Header.Entry, 10))
 			return false
