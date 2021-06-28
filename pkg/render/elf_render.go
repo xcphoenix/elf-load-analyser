@@ -3,6 +3,7 @@ package render
 import (
 	"debug/elf"
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"os"
 	"strconv"
 
@@ -114,6 +115,9 @@ func (e *ElfRender) buildDynamicData() data.Content { //nolint:funlen
 	dynInfo, err := xelf.BuildDynamicInfo(e.f)
 	if err != nil {
 		log.Warnf("Get static rel data from elf file failed: %v", err)
+		return data.EmptyContent
+	}
+	if helper.IsNil(dynInfo) {
 		return data.EmptyContent
 	}
 

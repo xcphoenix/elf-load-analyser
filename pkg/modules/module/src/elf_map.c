@@ -57,6 +57,7 @@ TDATA(elf_map_prop_event_type,  // elf map event type
        * ignore
        */
       unsigned long vaddr;  // 第一次的虚拟地址
+      int is_init;          // 是否第一次初始化
 );
 
 BPF_PERF_OUTPUT(elf_map_events);
@@ -160,8 +161,8 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     }
     bpf_trace_printk("total_cnt_p: %u", *total_cnt_p);
 
-    // 忽略 interp 的处理
-    if (!IS_ELF_SELF_MAP(*total_cnt_p)) {
+    // 如果是动态链接才会
+    if (_ISDYN_ && !IS_ELF_SELF_MAP(*total_cnt_p)) {
         bpf_trace_printk("elf_map:: ignore");
         return 0;
     }
@@ -191,24 +192,27 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
 #endif
 
     struct task_struct *t = (struct task_struct *)bpf_get_current_task();
+
     struct elf_map_prop_event_type *prop_p = prop_array.lookup(&zero);
     if (!prop_p) {
         return 0;
     }
 
     // 如果是ELF文件本身第一次映射
-    if (event.total_size) {
+    if (!prop_p->is_init) {
         bpf_trace_printk("First mapping");
 
         init_tdata(prop_p);
         prop_p->e_entry = _ENTRY_;
         prop_p->vaddr   = segment.p_vaddr;
 
-        if (!_ISDYN_) {
+        // 静态链接
+        if (!event.total_size) {
 #ifdef _X_DEBUG_
             bpf_trace_printk("\t- type: ET_EXEC\n");
 #endif
-        } else if (_ISDYN_) {
+        } else {
+            // 动态链接
             prop_p->is_dyn = 1;
 #ifdef _X_DEBUG_
             bpf_trace_printk("\t- type: ET_DYN");
@@ -243,6 +247,7 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
                 event.shifted_addr - event.vaddr);
 #endif
         }
+        prop_p->is_init = 1;
         prop_p->load_addr = segment.p_vaddr - segment.p_offset;
         prop_p->load_bias = event.shifted_addr - event.vaddr;
     }
@@ -293,10 +298,13 @@ int kretprobe__elf_map(struct pt_regs *ctx) {
 
     // arg check
     if (!(total_cnt_p = total_array.lookup(&zero)) ||  // elf self map check
-        !IS_ELF_SELF_MAP(*total_cnt_p) ||
         !(event = emap_array.lookup(&zero)) ||  // emap valid check
         !(prop = prop_array.lookup(&zero))) {   // prop valid check
-        bpf_trace_printk("elf_map_event check failed!");
+        bpf_trace_printk("elf_map_event check failed, arg missing!");
+        return 0;
+    }
+    if (_ISDYN_ && !IS_ELF_SELF_MAP(*total_cnt_p)) {
+        bpf_trace_printk("elf_map_event check failed, not elf self map!");
         return 0;
     }
 

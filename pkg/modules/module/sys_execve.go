@@ -54,5 +54,6 @@ func init() {
 	})
 	m.RegisterOnceTable(entry, modules.RenderHandler(sysExecveEvent{}, nil))
 	m.RegisterOnceTable("ret_event", modules.RenderHandler(sysExecveRetEvent{}, nil))
+	m.SetMark("ret_event", perf.EndFlag)
 	factory.Register(m)
 }

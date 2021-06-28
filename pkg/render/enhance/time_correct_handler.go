@@ -58,7 +58,7 @@ func (t timeCorrectPlugin) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 		if ok {
 			ns, ok = v.(uint64)
 		}
-		if ok {
+		if ok && ns != 0 {
 			withNsDataList = append(withNsDataList, NsDataPair{dataCollection[i], ns})
 		} else {
 			noNsDataList = append(noNsDataList, dataCollection[i])

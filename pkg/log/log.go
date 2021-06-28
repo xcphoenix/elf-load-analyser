@@ -89,7 +89,8 @@ func newBaseLogger(level Level, w io.Writer, prefix string, flag int) *baseLogge
 }
 
 func (b *baseLogger) SetDecorator(decorator func(s string) string) *baseLogger {
-	b.decorator = decorator
+	// NOTE disable color
+	//b.decorator = decorator
 	return b
 }
 

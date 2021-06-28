@@ -94,7 +94,6 @@ int kprobe__elf_map(struct pt_regs *ctx, struct file *filep, unsigned long addr,
     }
     bpf_trace_printk("total_cnt_p: %u", *total_cnt_p);
 
-    // 忽略 interp 的处理
     if (!IS_ELF_INTERRP_MAP(*total_cnt_p)) {
         bpf_trace_printk("elf_map:: ignore");
         return 0;

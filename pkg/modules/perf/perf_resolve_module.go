@@ -197,10 +197,9 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 					defer wg.Done()
 					dataProcessing(d, tableCtx, ch)
 				}()
-				if _, ok := tableCtx.mark[EndFlag]; ok {
+				if _, ok := tableCtx.mark[EndFlag]; ok && p.IsEnd() {
 					startEnd <- struct{}{}
-				}
-				if tableCtx.loop {
+				} else if tableCtx.loop {
 					continue
 				}
 			} else if chosen == chCnt+1 {

@@ -52,3 +52,16 @@ ul.rs-timeline {
 .footer {
   margin-bottom: 30px;
 }
+
+.list-item {
+  white-space: break-spaces;
+  width: 90%;
+}
+
+ul.rs-timeline.rs-timeline-align-left.rs-timeline-with-time.rs-timeline-endless {
+  word-break: break-all;
+}
+
+code.language-shell {
+  white-space: break-spaces;
+}

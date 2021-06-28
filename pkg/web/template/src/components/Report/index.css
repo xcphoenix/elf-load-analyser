@@ -1,16 +1,16 @@
-@media (max-width: 449px) {
+@media (max-width: 800px) {
   .content {
     width: 100%;
   }
 }
 
-@media (min-width: 450px) and (max-width: 620px) {
+@media (min-width: 1000px) and (max-width: 1300px) {
   .content {
     width: 90%;
   }
 }
 
-@media (min-width: 621px) {
+@media (min-width: 1300px) {
   .content {
     width: 80%;
   }
