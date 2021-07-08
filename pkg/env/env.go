@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 const (
@@ -40,13 +40,15 @@ func GetKernelVersion() string {
 func ValidateKernelConfigs(configGzFile string, target ...string) bool {
 	file, err := os.Open(configGzFile)
 	if err != nil {
-		log.Errorf("Open config file %q failed, %v", configGzFile, err)
+		log.Fatalf("Open config file %q failed, %v", configGzFile, err)
 	}
 	defer func() { _ = file.Close() }()
 
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		log.Errorf("Reset file %q err, %v", configGzFile, err)
+		_ = file.Close()
+		//goland:noinspection GoLinterLocal
+		log.Fatalf("Reset file %q err, %v", configGzFile, err)
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer reader.Close()
@@ -83,13 +85,15 @@ func getKernelVersion(releaseFile string) string {
 
 	file, err := os.Open(releaseFile)
 	if err != nil {
-		log.Errorf("Open release file %q failed, %v", releaseFile, err)
+		log.Fatalf("Open release file %q failed, %v", releaseFile, err)
 	}
 	defer file.Close()
 
 	release, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Errorf("Read %q failed, %v", releaseFile, err)
+		_ = file.Close()
+		//goland:noinspection GoLinterLocal
+		log.Fatalf("Read %q failed, %v", releaseFile, err)
 	}
 
 	var version = strings.TrimSpace(string(release))

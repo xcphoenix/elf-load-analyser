@@ -2,8 +2,7 @@ package xelf
 
 import (
 	"debug/elf"
-
-	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 )
 
 type DynamicInfo struct {
@@ -53,7 +52,7 @@ func GetInterp(f *elf.File) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			return data.TrimBytes2Str(d), nil
+			return helper.TrimBytes2Str(d), nil
 		}
 	}
 	// 共享对象可以没有解释器

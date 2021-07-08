@@ -1,8 +1,8 @@
 # code from "https://gist.github.com/scottt/8f7be45708fbea8b7189#file-bin-true-ld-so-processing-log-L435
 
-import gdb
-import pprint
 import difflib
+
+import gdb
 
 
 class CatchSyscallState:

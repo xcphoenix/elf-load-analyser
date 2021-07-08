@@ -4,18 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"os/user"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
-
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
-	"golang.org/x/sys/unix"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -32,50 +26,8 @@ var procArg = struct {
 
 	iFile, oFile, eFile string
 	iFd, oFd, eFd       uintptr
+	childDaemon         bool
 }{}
-
-type fileFd struct {
-	fd    *uintptr
-	file  *string
-	read  bool
-	other uintptr
-}
-
-func fd(fd *uintptr, file *string, read bool, other uintptr) *fileFd {
-	return &fileFd{file: file, read: read, other: other, fd: fd}
-}
-
-func (ffd *fileFd) getFd() error {
-	file := *ffd.file
-	if len(file) == 0 {
-		*ffd.fd = ffd.other
-		return nil
-	}
-	var f *os.File
-	var e error
-	if ffd.read {
-		f, e = os.Open(file)
-	} else {
-		f, e = os.OpenFile(file, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
-	}
-	if e != nil {
-		return e
-	}
-	state.RegisterHandler(state.Exit, func(_ error) error {
-		log.Debugf("Close file: %s", f.Name())
-		return f.Close()
-	})
-	*ffd.fd = f.Fd()
-	return nil
-}
-
-// XFlagSet 属于此模块的命令行参数
-var XFlagSet = xflag.OpInject(&procArg.args, "args", "", "program parameter, split by space", nil).
-	Inject(&procArg.path, "path", "", "program path", pathHandle).
-	Inject(&procArg.user, "user", "", "runner user", userHandle).
-	OpInject(&procArg.iFile, "in", "", "program stdin", fd(&procArg.iFd, &procArg.iFile, true, 0).getFd).
-	OpInject(&procArg.oFile, "out", "", "program stdout", fd(&procArg.oFd, &procArg.oFile, false, 1).getFd).
-	OpInject(&procArg.eFile, "err", "", "program stderr", fd(&procArg.eFd, &procArg.eFile, false, 2).getFd)
 
 // 获取程序路径
 func GetProgPath() string {
@@ -104,7 +56,7 @@ func CreateProcess() int {
 
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Errorf("Get pwd error, %v", err)
+		log.Fatalf("Get pwd error, %v", err)
 	}
 	childEnvItem := fmt.Sprintf("%s=%s", childFlagEnv, procArg.path)
 	childArgItem := fmt.Sprintf("%s=%s", childArgsFlag, strings.TrimSpace(execArgs))
@@ -121,10 +73,20 @@ func CreateProcess() int {
 		Files: []uintptr{procArg.iFd, procArg.oFd, procArg.eFd},
 	})
 	if err != nil {
-		log.Errorf("Create proc failed, %v", err)
+		log.Fatalf("Create proc failed, %v", err)
 	}
 
 	log.Infof("Create child proc %d(parent: %d) success", childPID, os.Getppid())
+
+	// 关闭子进程
+	if !procArg.childDaemon {
+		state.RegisterHandler(state.Exit, func(_ error) error {
+			log.Infof("Start close child process if live..")
+			_ = syscall.Kill(childPID, syscall.SIGKILL)
+			return nil
+		})
+	}
+
 	return childPID
 }
 
@@ -132,7 +94,7 @@ func CreateProcess() int {
 func WakeUpChild(childPID int) {
 	err := syscall.Kill(childPID, syscall.SIGUSR1)
 	if err != nil {
-		log.Errorf("Wake child proc error, %v", err)
+		log.Fatalf("Wake child proc error, %v", err)
 	}
 	log.Infof("Wake child proc success")
 }
@@ -147,37 +109,7 @@ func execProcess(execPath string) {
 	execArgs := []string{execPath}
 	execArgs = append(execArgs, strings.Fields(argsEnv)...)
 	if err := syscall.Exec(execPath, execArgs, os.Environ()); err != nil {
-		log.Errorf("Call binary failed, %v", err)
+		log.Fatalf("Call binary failed, %v", err)
 	}
 	os.Exit(0)
-}
-
-func userHandle() error {
-	s := strings.TrimSpace(procArg.user)
-	if len(s) != 0 {
-		u, err := user.Lookup(s)
-		if err == nil {
-			uid, _ := strconv.Atoi(u.Uid)
-			gid, _ := strconv.Atoi(u.Gid)
-			procArg.uid, procArg.gid = uint32(uid), uint32(gid)
-			return nil
-		}
-	}
-	return fmt.Errorf("invalid user")
-}
-
-func pathHandle() error {
-	if len(procArg.path) == 0 {
-		return fmt.Errorf("path can't be null")
-	}
-	absPath, err := filepath.Abs(procArg.path)
-	if err != nil {
-		return fmt.Errorf("invalid path, %w", err)
-	}
-	procArg.path = absPath
-
-	if err := unix.Access(procArg.path, unix.X_OK); err != nil {
-		return err
-	}
-	return nil
 }

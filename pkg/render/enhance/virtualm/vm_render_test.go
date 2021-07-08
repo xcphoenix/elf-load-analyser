@@ -31,6 +31,6 @@ func TestVirtualMemory_Render(t *testing.T) {
 	if err != nil {
 		return
 	}
-	bar := virtualMemory.ChartsRender("http://127.0.0.1:8080/assets/")
+	bar := virtualMemory.RenderCharts("http://127.0.0.1:8080/assets/")
 	_ = bar.Render(f)
 }

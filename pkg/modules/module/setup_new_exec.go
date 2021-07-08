@@ -44,8 +44,8 @@ func (s setupNewExecRetEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "setup_new_exec",
-		Source:  setupNewExecSource,
+		Name:   "setup_new_exec",
+		Source: setupNewExecSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__setup_new_exec", "setup_new_exec", -1),
 			bcc.NewKretprobeEvent("kretprobe__setup_new_exec", "setup_new_exec", -1),

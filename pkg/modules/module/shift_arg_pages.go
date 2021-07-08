@@ -34,7 +34,7 @@ func (s shiftArgPagesEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "shift_arg_pages",
+		Name:     "shift_arg_pages",
 		Source:   shiftArgPagesSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__shift_arg_pages", "shift_arg_pages", -1)},
 		CanMerge: true,

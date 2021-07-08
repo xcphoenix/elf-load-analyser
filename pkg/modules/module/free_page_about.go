@@ -46,8 +46,8 @@ func (f freePgdRangeEventType) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "mmu_gather",
-		Source:  tlbAboutSource,
+		Name:   "mmu_gather",
+		Source: tlbAboutSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__tlb_gather_mmu", "tlb_gather_mmu", -1),
 			bcc.NewKprobeEvent("kprobe__tlb_finish_mmu", "tlb_finish_mmu", -1),

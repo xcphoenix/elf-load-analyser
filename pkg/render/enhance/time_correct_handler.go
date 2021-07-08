@@ -1,8 +1,8 @@
 package enhance
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sort"
 	"time"

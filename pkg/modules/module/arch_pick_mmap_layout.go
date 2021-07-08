@@ -28,8 +28,8 @@ func (a archPickMmapLayoutEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "arch_pick_mmap_layout",
-		Source:  archPickMmapLayoutSource,
+		Name:   "arch_pick_mmap_layout",
+		Source: archPickMmapLayoutSource,
 		Events: []*bcc.Event{
 			bcc.NewKretprobeEvent("kretprobe__arch_pick_mmap_layout", "arch_pick_mmap_layout", -1),
 		},

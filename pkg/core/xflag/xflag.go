@@ -4,162 +4,236 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 )
 
-// xflag error
-type flagError struct {
-	msg string
+type FlagError struct {
+	Msg string
 }
 
-func newFlagError(msg string) *flagError {
-	return &flagError{msg: msg}
+func (e FlagError) Error() string {
+	return e.Msg
 }
 
-func (e flagError) Error() string {
-	return e.msg
+type ArgValidator func() error
+
+type FlagValue struct {
+	Target       interface{}
+	Name         string
+	DefaultValue interface{}
+	Usage        string
+	Validator    ArgValidator
 }
 
-type Val struct {
-	val        interface{}
-	name       string
-	defaultVal interface{}
-	usage      string
-	handler    func() error
-	optional   bool
+func NewFlagValue(target interface{}, name string, usage string) *FlagValue {
+	return &FlagValue{
+		Target: target,
+		Name:   name,
+		Usage:  usage,
+	}
 }
 
-var holdHandler = make(map[string]func() error)
-var mustFlag = make(map[string]struct{})
+func (f *FlagValue) WithDefault(value interface{}) *FlagValue {
+	f.DefaultValue = value
+	return f
+}
 
-// flag数据集
-type Set struct {
-	xFlags []*Val
+func (f *FlagValue) WithValidator(validator ArgValidator) *FlagValue {
+	f.Validator = validator
+	return f
+}
+
+type FlagSet struct {
+	initialized  bool
+	innerFlagSet *flag.FlagSet
+	xFlags       []*FlagValue
+	argValidator map[string]ArgValidator
+	optionalArgs map[string]struct{}
+}
+
+func NewFlagSet() *FlagSet {
+	return &FlagSet{
+		initialized:  false,
+		xFlags:       make([]*FlagValue, 0),
+		optionalArgs: make(map[string]struct{}),
+		argValidator: make(map[string]ArgValidator),
+	}
+}
+
+func (flagSet *FlagSet) merge(other *FlagSet) {
+	flagSet.xFlags = append(flagSet.xFlags, other.xFlags...)
+	for name, handlers := range other.argValidator {
+		flagSet.argValidator[name] = handlers
+	}
+	for name := range other.optionalArgs {
+		flagSet.optionalArgs[name] = struct{}{}
+	}
 }
 
 // 注入命令行参数，传入值（除 FunVal 外兼容 flag 包）、名称、默认值、描述、后置处理器
-func (f *Set) Inject(val interface{}, name string, defaultVal interface{}, usage string,
-	handler func() error) *Set {
-	flagVal := &Val{
-		val:        val,
-		name:       name,
-		defaultVal: defaultVal,
-		usage:      usage,
-		handler:    handler,
-		optional:   false,
+func (flagSet *FlagSet) Inject(values ...*FlagValue) *FlagSet {
+	for _, value := range values {
+		if helper.IsNil(value) || len(value.Name) == 0 || helper.IsNil(value.Target) {
+			panic(fmt.Sprintf("illegal flag value: %v", value))
+		}
+
+		if helper.IsNil(value.DefaultValue) {
+			value.DefaultValue = createByType(value.Target)
+		}
+
+		flagSet.xFlags = append(flagSet.xFlags, value)
+		if helper.IsNotNil(value.Validator) {
+			flagSet.argValidator[value.Name] = value.Validator
+		}
 	}
-	f.xFlags = append(f.xFlags, flagVal)
-	return f
+	return flagSet
 }
 
 // 注入可选命令行参数，传入值（除 FunVal 外兼容 flag 包）、名称、默认值、描述、后置处理器
-func (f *Set) OpInject(val interface{}, name string, defaultVal interface{}, usage string,
-	handler func() error) *Set {
-	f.Inject(val, name, defaultVal, "(optional) "+usage, handler)
-	f.xValList()[len(f.xValList())-1].optional = true
-	return f
+func (flagSet *FlagSet) OpInject(values ...*FlagValue) *FlagSet {
+	for _, value := range values {
+		value.Usage = "(optional) " + value.Usage
+		flagSet.Inject(value)
+		flagSet.optionalArgs[value.Name] = struct{}{}
+	}
+	return flagSet
 }
 
-func (f *Set) xValList() []*Val {
-	return f.xFlags
+func (flagSet *FlagSet) xValList() []*FlagValue {
+	return flagSet.xFlags
 }
 
 // 注入命令行参数，调用 Inject
-func Inject(val interface{}, name string, defaultVal interface{}, usage string, handler func() error) *Set {
-	set := &Set{}
-	return set.Inject(val, name, defaultVal, usage, handler)
+func Inject(values ...*FlagValue) *FlagSet {
+	set := NewFlagSet()
+	return set.Inject(values...)
 }
 
 // 注入可选命令行参数，调用 Inject
-func OpInject(val interface{}, name string, defaultVal interface{}, usage string, handler func() error) *Set {
-	set := &Set{}
-	return set.OpInject(val, name, defaultVal, usage, handler)
+func OpInject(values ...*FlagValue) *FlagSet {
+	set := NewFlagSet()
+	return set.OpInject(values...)
 }
 
-// 添加 Flags
-func AddFlag(f *flag.FlagSet, xf *Set) {
+func injectFlags(f *flag.FlagSet, xf *FlagSet) {
 	flagValList := xf.xValList()
 	for _, xflag := range flagValList {
-		switch val := xflag.val.(type) {
+		switch val := xflag.Target.(type) {
 		case *bool:
-			f.BoolVar(val, xflag.name, xflag.defaultVal.(bool), xflag.usage)
+			f.BoolVar(val, xflag.Name, xflag.DefaultValue.(bool), xflag.Usage)
 		case *int:
-			f.IntVar(val, xflag.name, xflag.defaultVal.(int), xflag.usage)
+			f.IntVar(val, xflag.Name, xflag.DefaultValue.(int), xflag.Usage)
 		case *int64:
-			f.Int64Var(val, xflag.name, xflag.defaultVal.(int64), xflag.usage)
+			f.Int64Var(val, xflag.Name, xflag.DefaultValue.(int64), xflag.Usage)
 		case *uint:
-			f.UintVar(val, xflag.name, xflag.defaultVal.(uint), xflag.usage)
+			f.UintVar(val, xflag.Name, xflag.DefaultValue.(uint), xflag.Usage)
 		case *uint64:
-			f.Uint64Var(val, xflag.name, xflag.defaultVal.(uint64), xflag.usage)
+			f.Uint64Var(val, xflag.Name, xflag.DefaultValue.(uint64), xflag.Usage)
 		case *string:
-			f.StringVar(val, xflag.name, xflag.defaultVal.(string), xflag.usage)
+			f.StringVar(val, xflag.Name, xflag.DefaultValue.(string), xflag.Usage)
 		case *float64:
-			f.Float64Var(val, xflag.name, xflag.defaultVal.(float64), xflag.usage)
+			f.Float64Var(val, xflag.Name, xflag.DefaultValue.(float64), xflag.Usage)
 		case *time.Duration:
-			f.DurationVar(val, xflag.name, xflag.defaultVal.(time.Duration), xflag.usage)
+			f.DurationVar(val, xflag.Name, xflag.DefaultValue.(time.Duration), xflag.Usage)
 		case flag.Value:
-			f.Var(val, xflag.name, xflag.usage)
+			f.Var(val, xflag.Name, xflag.Usage)
 		default:
-			panic("invalid xflag value type")
-		}
-		if xflag.handler != nil {
-			holdHandler[xflag.name] = xflag.handler
-		}
-		if !xflag.optional {
-			mustFlag[xflag.name] = struct{}{}
+			panic(fmt.Sprintf("unsupported xflag value type: %T", xflag.Target))
 		}
 	}
 }
 
 // 添加多个 Flags
-func AddFlags(f *flag.FlagSet, xfList ...*Set) {
-	if len(xfList) == 0 {
-		return
+func Bind(f *flag.FlagSet, xfList ...*FlagSet) *FlagSet {
+	var initedFlagSet = NewFlagSet()
+	initedFlagSet.initialized = true
+	initedFlagSet.innerFlagSet = f
+
+	if helper.IsNil(f) || len(xfList) == 0 {
+		return initedFlagSet
 	}
+
 	for _, set := range xfList {
-		AddFlag(f, set)
+		if helper.IsNil(set) {
+			continue
+		}
+		injectFlags(f, set)
+		initedFlagSet.merge(set)
 	}
+
+	return initedFlagSet
 }
 
 // 在默认的 FlagSet 上添加 Flags
-func AddCmdFlags(xfList ...*Set) {
-	AddFlags(flag.CommandLine, xfList...)
+func DefaultBind(xfList ...*FlagSet) *FlagSet {
+	return Bind(flag.CommandLine, xfList...)
 }
 
 // 解析 Flags
-func Parse(f *flag.FlagSet) {
+func (flagSet *FlagSet) Parse() {
+	if !flagSet.initialized {
+		panic("flagSet not binding cmd args")
+	}
+
+	var innerFlag = flagSet.innerFlagSet
+
 	state.RegisterHandler(state.AbnormalExit, func(err error) error {
-		var fe *flagError
+		var fe *FlagError
 		if errors.As(err, &fe) {
-			fmt.Println(fe.msg)
-			f.Usage()
+			fmt.Println(fe.Msg)
+			innerFlag.Usage()
 		}
 		return nil
 	})
 
-	_ = f.Parse(os.Args[1:])
-	// 获取哪些参数被设置
-	flagExist := make(map[string]bool)
-	f.VisitAll(func(f *flag.Flag) {
-		flagExist[f.Name] = true
+	_ = innerFlag.Parse(os.Args[1:])
+	var flagMap = make(map[string]bool)
+	innerFlag.VisitAll(func(f *flag.Flag) {
+		flagMap[f.Name] = true
 	})
-	for name := range mustFlag {
-		if !flagExist[name] {
-			state.WithError(newFlagError(fmt.Sprintf("[%s] must be defined\n", name)))
+
+	for _, xflag := range flagSet.xFlags {
+		var name = xflag.Name
+		if _, ok := flagSet.optionalArgs[name]; ok {
+			continue
+		}
+		if !flagMap[name] {
+			state.WithError(FlagError{fmt.Sprintf("arg [%s] must be defined\n", name)})
+			return
 		}
 	}
-	for name, handle := range holdHandler {
-		err := handle()
-		if err != nil {
-			state.WithError(newFlagError(fmt.Sprintf("[%s] parsed error: %v\n", name, err)))
+
+	for _, xflag := range flagSet.xFlags {
+		var name = xflag.Name
+
+		if validator, ok := flagSet.argValidator[name]; ok {
+			var err = validator()
+			if helper.IsNil(err) {
+				continue
+			}
+			state.WithError(FlagError{fmt.Sprintf("parsed arg [%s] error: %v\n", name, err)})
+			return
 		}
 	}
 }
 
-// 使用默认的 FlagSet 进行解析
-func ParseCmdFlags() {
-	Parse(flag.CommandLine)
+func createByType(target interface{}) interface{} {
+	if target == nil {
+		return nil
+	}
+
+	if _, ok := target.(flag.Value); ok {
+		return nil
+	}
+
+	t := reflect.TypeOf(target)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return reflect.New(t).Elem().Interface()
 }

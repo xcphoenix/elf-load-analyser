@@ -29,7 +29,8 @@ type AnalyseData struct {
 	lazyFunc func(aData *AnalyseData) Content // 延迟处理函数, 要求返回 Content，避免忘记返回实际的数据内容
 }
 
-func newAnalyseData(status Status, desc string, content Content, dataList []*AnalyseData, lazyFunc func(aData *AnalyseData) Content) *AnalyseData {
+func newAnalyseData(status Status, desc string, content Content, dataList []*AnalyseData,
+	lazyFunc func(aData *AnalyseData) Content) *AnalyseData {
 	a := &AnalyseData{
 		XTime:    JSONTime(time.Now()),
 		DataList: dataList,

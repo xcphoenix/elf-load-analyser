@@ -38,7 +38,7 @@ func (e expandStackEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "expand_stack",
+		Name:     "expand_stack",
 		Source:   expandStackSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__expand_stack", "expand_stack", -1)},
 		CanMerge: true,

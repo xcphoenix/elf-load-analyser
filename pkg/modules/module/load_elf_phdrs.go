@@ -24,8 +24,8 @@ func (a loadElfPhdrsEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "load_elf_phdrs",
-		Source:  loadElfPhdrsSrc,
+		Name:   "load_elf_phdrs",
+		Source: loadElfPhdrsSrc,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__load_elf_phdrs", "load_elf_phdrs", -1),
 		},

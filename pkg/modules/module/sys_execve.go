@@ -41,8 +41,8 @@ func init() {
 	entry := "call_event"
 	fnName := bpf.GetSyscallFnName("execve")
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "syscall:execve",
-		Source:  execveSource,
+		Name:   "syscall:execve",
+		Source: execveSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("syscall__execve", fnName, -1),
 			bcc.NewKretprobeEvent("do_ret_sys_execve", fnName, -1),

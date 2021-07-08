@@ -36,8 +36,8 @@ sudo bpftrace --include=linux/mm_types.h \
   [87913] env 7fffffffefe8 7fffffffeff0
   ```
 
-  - 第二列为 ls 进程
-    - bprm->vma->vm_end ...f000
-    - bprm->p 最初位置：...eff8 (...f000 - 8)
-    - bprm->exec 存储了 filename 后： ...eff0 (...eff8 - 8)
-    - bprm->p 存储了 filename、envp、argv 后（这里 envp 为空，argv 第一个值仍然为 filename）：...efe8 (...eff8 - 8)
+    - 第二列为 ls 进程
+        - bprm->vma->vm_end ...f000
+        - bprm->p 最初位置：...eff8 (...f000 - 8)
+        - bprm->exec 存储了 filename 后： ...eff0 (...eff8 - 8)
+        - bprm->p 存储了 filename、envp、argv 后（这里 envp 为空，argv 第一个值仍然为 filename）：...efe8 (...eff8 - 8)

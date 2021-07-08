@@ -222,8 +222,8 @@ func (vm virtualMemory) fillSlot() []Vma {
 	return tmpVmaList
 }
 
-// ChartsRender 渲染数据到 Writer，设置host为js、css文件来源
-func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
+// RenderCharts 渲染数据到 Writer，设置host为js、css文件来源
+func (vm virtualMemory) RenderCharts(host string) *charts.Bar {
 	tmpVmaList := vm.fillSlot()
 	addrCnt := 0.0
 
@@ -244,7 +244,7 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 	for i := range tmpVmaList {
 		vma := tmpVmaList[i]
 
-		vmData := [][]interface{}{{0, flatAddr(vma.End - vma.Start), vma}}
+		vmData := [][]interface{}{{0, mapAddr(vma.End - vma.Start), vma}}
 		addrCnt += vmData[0][1].(float64)
 
 		var opts = []charts.SeriesOptser{
@@ -260,7 +260,7 @@ func (vm virtualMemory) ChartsRender(host string) *charts.Bar {
 				SymbolSize: 20,
 				Label:      charts.LabelTextOpts{Show: true, Formatter: charts.FuncOpts(markLineFormatter)},
 			},
-			charts.ItemStyleOpts{Color: vmaColor(vma)},
+			charts.ItemStyleOpts{Color: pickVmaColor(vma)},
 		}
 		addrMap[vma.End] = addrCnt
 		vmBar.AddYAxis(vma.MappedFile, vmData, opts...)
@@ -352,8 +352,8 @@ func maxIndicatrices(indicatrices map[string]uint64) uint64 {
 	return maxAddr(addrs...)
 }
 
-// flatAddr 地址映射
-func flatAddr(addr uint64) float64 {
+// mapAddr 地址映射
+func mapAddr(addr uint64) float64 {
 	return math.Log2(math.Log2(float64(addr/0x1000)+1)+1) + 1
 }
 
@@ -362,18 +362,19 @@ func archWord() uint {
 	return 32 << (^uint(0) >> 63)
 }
 
-func hash(s string) int {
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(s))
-	return int(h.Sum32())
-}
-
-func vmaColor(vma Vma) string {
+func pickVmaColor(vma Vma) string {
 	var colors = [...]string{
-		"#708090", "#20b2aa", "#778899", "#00a15c", "#00808c", "#6a5acd", "#704214", "#4798b3", "#a0522d", "#a16b47",
+		"#708090", "#20b2aa", "#778899", "#00a15c", "#00808c",
+		"#6a5acd", "#704214", "#4798b3", "#a0522d", "#a16b47",
 	}
 	if vma.Class == fillClass {
 		return "#eeeeee"
 	}
 	return colors[hash(vma.MappedFile)%len(colors)]
+}
+
+func hash(s string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(s))
+	return int(h.Sum32())
 }

@@ -46,8 +46,8 @@ func (a beginNewExecEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "begin_new_exec",
-		Source:  beginNewExecSrc,
+		Name:   "begin_new_exec",
+		Source: beginNewExecSrc,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__begin_new_exec", "begin_new_exec", -1),
 		},

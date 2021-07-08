@@ -56,8 +56,8 @@ func (s startThreadEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "finalize",
-		Source:  finalizeAboutSource,
+		Name:   "finalize",
+		Source: finalizeAboutSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__finalize_exec", "finalize_exec", -1),
 			bcc.NewKprobeEvent("kprobe__start_thread", "start_thread", -1),

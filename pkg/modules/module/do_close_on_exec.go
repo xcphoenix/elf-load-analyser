@@ -24,7 +24,7 @@ func (z doCloseOnExecEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "do_close_on_exec",
+		Name:     "do_close_on_exec",
 		Source:   doCloseOnExecSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__do_close_on_exec", "do_close_on_exec", -1)},
 		CanMerge: true,

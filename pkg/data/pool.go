@@ -1,30 +1,22 @@
-package factory
-
-import (
-	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
-	"sync"
-
-	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-)
+package data
 
 type Pool struct {
-	once  sync.Once
-	ch    chan *data.AnalyseData
+	ch    chan *AnalyseData
 	exit  chan struct{}
-	data  []*data.AnalyseData
+	data  []*AnalyseData
 	ready chan struct{}
 }
 
-func NewPool() *Pool {
+func NewDataPool() *Pool {
 	return &Pool{
-		ch:    make(chan *data.AnalyseData),
+		ch:    make(chan *AnalyseData),
 		exit:  make(chan struct{}),
-		data:  make([]*data.AnalyseData, 0),
+		data:  make([]*AnalyseData, 0),
 		ready: make(chan struct{}),
 	}
 }
 
-func (p *Pool) Chan() chan<- *data.AnalyseData {
+func (p *Pool) Chan() chan<- *AnalyseData {
 	return p.ch
 }
 
@@ -33,11 +25,8 @@ func (p *Pool) WaitReady() {
 	<-p.ready
 }
 
-func (p *Pool) Data() []*data.AnalyseData {
+func (p *Pool) Data() []*AnalyseData {
 	<-p.exit
-	p.once.Do(func() {
-		state.PushState(state.ProgramLoaded)
-	})
 	return p.data
 }
 

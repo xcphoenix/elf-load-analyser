@@ -1,10 +1,10 @@
 package state
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
+	"sync"
 )
 
 type State int
@@ -22,8 +22,8 @@ func isInvalid(s State) bool {
 	return s < initState || s > Exit
 }
 
-func isIllegal(from State, to State, inner bool) bool {
-	if inner && from == AbnormalExit && to == Exit {
+func isIllegal(from State, to State, isInternal bool) bool {
+	if isInternal && from == AbnormalExit && to == Exit {
 		return false
 	}
 	if isInvalid(from) || isInvalid(to) {
@@ -41,15 +41,15 @@ func isIllegal(from State, to State, inner bool) bool {
 // EventHandler state changed enhance
 type EventHandler func(error) error
 
-type stateContext struct {
-	cancelFunc    context.CancelFunc
+type stateCtx struct {
 	state2events  map[State][]EventHandler
 	currentState  State
 	abnormalError error
+	mutex         sync.Mutex
 }
 
-func newContext() *stateContext {
-	return &stateContext{
+func newStateCtx() *stateCtx {
+	return &stateCtx{
 		state2events:  make(map[State][]EventHandler, Exit-initState+1),
 		currentState:  initState,
 		abnormalError: nil,
@@ -57,83 +57,78 @@ func newContext() *stateContext {
 }
 
 // RegisterHandler register enhance, enhance will be touched when state be changed from other to s
-func (c *stateContext) RegisterHandler(s State, e EventHandler) {
+func (ctx *stateCtx) RegisterHandler(s State, e EventHandler) {
 	if isInvalid(s) {
 		panic(fmt.Sprintf("illegal state: %v", s))
 	}
-	c.state2events[s] = append(c.state2events[s], e)
+
+	ctx.mutex.Lock()
+	defer ctx.mutex.Unlock()
+	ctx.state2events[s] = append(ctx.state2events[s], e)
 }
 
-func (c *stateContext) pushStateInner(s State, inner bool) {
-	if isIllegal(c.currentState, s, inner) {
-		panic(fmt.Sprintf("illegal update from %v to %v", c.currentState, s))
+func (ctx *stateCtx) updateStateInternal(s State, isInternal bool) {
+	if isIllegal(ctx.currentState, s, isInternal) {
+		panic(fmt.Sprintf("illegal update from %v to %v", ctx.currentState, s))
 	}
-	c.currentState = s
-	for s, handler := range c.state2events[s] {
-		if e := handler(c.abnormalError); e != nil {
+	ctx.currentState = s
+	for s, handler := range ctx.state2events[s] {
+		if e := handler(ctx.abnormalError); e != nil {
 			log.Printf("enhance on state[%v] failed: %v", s, e)
 		}
 	}
 	if s == Exit {
-		if c.cancelFunc != nil {
-			// cancel context
-			c.cancelFunc()
-		}
-
-		fmt.Println()
-		if c.abnormalError != nil {
-			log.Fatalf("Program exited by error: %v", c.abnormalError)
+		log.Println()
+		if ctx.abnormalError != nil {
+			log.Fatalf("Program exited by error: %v", ctx.abnormalError)
 		} else {
 			log.Println("Program stopped")
 			os.Exit(0)
 		}
 	}
 	if s == AbnormalExit {
-		c.pushStateInner(Exit, true)
+		ctx.updateStateInternal(Exit, true)
 	}
 }
 
-// Create ctx
-func (c *stateContext) CreateContent() context.Context {
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	c.cancelFunc = cancelFunc
-	return ctx
-}
-
-// PushState push state to s
-func (c *stateContext) PushState(s State) {
+// UpdateState push state to s
+func (ctx *stateCtx) UpdateState(s State) {
 	if s == AbnormalExit {
 		panic("Please use `WithError` to push state to AbnormalExit with error")
 	}
-	c.pushStateInner(s, false)
+
+	ctx.mutex.Lock()
+	defer ctx.mutex.Unlock()
+
+	ctx.updateStateInternal(s, false)
 }
 
 // WithError Change state to AbnormalExit and set error
-func (c *stateContext) WithError(e error) {
-	if c.currentState == AbnormalExit {
+func (ctx *stateCtx) WithError(e error) {
+	if ctx.currentState == AbnormalExit {
 		panic("Cannot repeat call `WithError`")
 	}
-	c.abnormalError = e
-	c.pushStateInner(AbnormalExit, false)
+
+	ctx.mutex.Lock()
+	defer ctx.mutex.Unlock()
+
+	ctx.abnormalError = e
+	ctx.updateStateInternal(AbnormalExit, false)
 }
 
-var defaultContext = newContext()
+var defaultContext = newStateCtx()
 
-// RegisterHandler register enhance on default stateContext
+// RegisterHandler register enhance on default stateCtx
 func RegisterHandler(s State, e EventHandler) {
 	defaultContext.RegisterHandler(s, e)
 }
 
-// PushState push current state to s on default stateContext
-func PushState(s State) {
-	defaultContext.PushState(s)
+// UpdateState push current state to s on default stateCtx
+func UpdateState(s State) {
+	defaultContext.UpdateState(s)
 }
 
 // WithError Change state to AbnormalExit and set error
 func WithError(e error) {
 	defaultContext.WithError(e)
-}
-
-func CreateRootContent() context.Context {
-	return defaultContext.CreateContent()
 }

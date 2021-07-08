@@ -42,8 +42,8 @@ func (x xVmaAdjustEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "__vma_adjust",
-		Source:  xVmaAdjustSource,
+		Name:   "__vma_adjust",
+		Source: xVmaAdjustSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__shift_arg_pages", "shift_arg_pages", -1),
 			bcc.NewKprobeEvent("kprobe__x__vma_adjust", "__vma_adjust", -1),

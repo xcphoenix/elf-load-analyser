@@ -39,15 +39,15 @@ func EchoBanner() {
 		fmt.Println(banner)
 	}
 
-	bannerArr := strings.Split(banner, "\n")
-	kvLen, banLen := len(kvList), len(bannerArr)
+	bannerLines := strings.Split(banner, "\n")
+	kvLen, banLen := len(kvList), len(bannerLines)
 	startIdx := helper.IfElse(kvLen >= banLen, 0, (banLen-kvLen)/2).(int)
 
 	bannerMaxLen, _ := strconv.Atoi(BannerLen)
 	if bannerMaxLen == 0 {
 		bannerMaxLen = 48
 	}
-	for i, s := range bannerArr {
+	for i, s := range bannerLines {
 		fmt.Printf("%-*.*s", bannerMaxLen, bannerMaxLen, s)
 		if bIdx := i - startIdx; bIdx >= 0 && bIdx < kvLen {
 			fmt.Print(kvList[bIdx])

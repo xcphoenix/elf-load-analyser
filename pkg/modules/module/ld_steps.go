@@ -45,7 +45,7 @@ type protectRelroEvent struct { //nolint:maligned
 }
 
 func (p protectRelroEvent) Render() *data.AnalyseData {
-	objectName := data.TrimBytes2Str(p.Name[:])
+	objectName := helper.TrimBytes2Str(p.Name[:])
 	// NOTE: 目前不确定是否是特例
 	if len(objectName) == 0 {
 		objectName = "可执行程序"
@@ -96,7 +96,7 @@ type mapObjectFromFdEvent struct {
 }
 
 func (m mapObjectFromFdEvent) Render() *data.AnalyseData {
-	return data.NewAnalyseData(form.NewMarkdown("开始映射共享对象: " + data.TrimBytes2Str(m.RealName[:])))
+	return data.NewAnalyseData(form.NewMarkdown("开始映射共享对象: " + helper.TrimBytes2Str(m.RealName[:])))
 }
 
 type MmapEvent struct {
@@ -111,7 +111,7 @@ type MmapEvent struct {
 }
 
 func (m MmapEvent) Render() *data.AnalyseData {
-	var mapName = data.TrimBytes2Str(m.Name[:])
+	var mapName = helper.TrimBytes2Str(m.Name[:])
 	if len(mapName) == 0 {
 		if m.Fd < 0 {
 			mapName = "匿名页"
@@ -137,8 +137,8 @@ func (m MmapEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "ld_steps",
-		Source:  ldStepSource,
+		Name:   "ld_steps",
+		Source: ldStepSource,
 		LazyInit: func(mm *modules.MonitorModule, param bcc.PreParam) bool {
 			mm.Events = []*bcc.Event{
 				bcc.NewUprobeEvent("bootstrap_finished", "__rtld_malloc_init_stubs", param.Interp, -1),

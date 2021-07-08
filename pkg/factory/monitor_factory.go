@@ -2,154 +2,117 @@ package factory
 
 import (
 	"context"
+	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
-	"reflect"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
-var (
+type DefaultMmFactory struct {
 	mutex         sync.Mutex
 	registerMutex sync.Mutex
+	builders      []modules.ModuleBuilder
+}
 
-	factoryList []modules.ModuleFactory
-	mmList      []*modules.MonitorModule
-)
+func NewDefaultMmFactory() *DefaultMmFactory {
+	return &DefaultMmFactory{
+		builders: make([]modules.ModuleBuilder, 0),
+	}
+}
 
-// Register 注册模块工厂类, mm 为空将被忽略
-func Register(mm modules.ModuleFactory) {
-	registerMutex.Lock()
-	defer registerMutex.Unlock()
+func (factory *DefaultMmFactory) Register(mm modules.ModuleBuilder) {
+	factory.registerMutex.Lock()
+	defer factory.registerMutex.Unlock()
 
 	if helper.IsNil(mm) {
 		return
 	}
-	factoryList = append(factoryList, mm)
+	factory.builders = append(factory.builders, mm)
 }
 
-// About memory: https://github.com/iovisor/bcc/issues/1949
-// ---
-// LoadMonitors ctx The run context, ctr control the proc when to stop
-func LoadMonitors(param bcc.PreParam) (p *Pool) {
-	registerMutex.Lock()
-	defer registerMutex.Unlock()
+func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, param bcc.PreParam) {
+	factory.registerMutex.Lock()
+	defer factory.registerMutex.Unlock()
 
 	// 生命周期控制
-	rootCtx := state.CreateRootContent()
-	rootMonitorCtx, rootCancelFunc := context.WithCancel(rootCtx)
-	waitMonitorCtx, waitCancelFunc := context.WithCancel(rootMonitorCtx)
+	var rootCtx = createRootCtx(ctx)
+	masterMonitorCtx, masterCancelFunc := context.WithCancel(rootCtx)
+	slaveMonitorCtx, slaveCancelFunc := context.WithCancel(masterMonitorCtx)
 
-	monitors, lastMonitor, lastIdx, cnt := initMm(param)
+	var masterMm, slaveMms = factory.initMm(param)
+	var mmCnt = len(slaveMms) + 1
 
-	p = NewPool()
-	ch := p.Chan()
+	go func() {
+		<-masterMonitorCtx.Done()
+		state.UpdateState(state.ProgramLoaded)
+	}()
 	// 当作为根的模块处理结束时，中止收集数据
-	p.Init(rootMonitorCtx.Done(), cnt)
+	pool.Init(masterMonitorCtx.Done(), mmCnt)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(cnt - 1)
+	var wg = &sync.WaitGroup{}
+	wg.Add(mmCnt - 1)
 
-	log.Info("Start load monitor....")
-	for idx, monitor := range monitors {
-		if helper.IsNil(monitor) {
-			continue
-		}
-		monitor := monitor
-		idx := idx
+	log.Info("Start load monitor modules....")
+	for _, mm := range slaveMms {
+		var monitor = mm
 		go func() {
-			monitor.PreProcessing(param)
-			m := monitor.DoAction()
-			mmList[idx].Resolve(waitMonitorCtx, m, ch)
-			mutex.Lock()
-			m.Close()
-
-			mutex.Unlock()
+			executeMonitor(slaveMonitorCtx, param, monitor, &factory.mutex, pool)
 			wg.Done()
 		}()
 	}
 
 	// 根模块处理
 	go func() {
-		lastMonitor.PreProcessing(param)
-		m := lastMonitor.DoAction()
-		mmList[lastIdx].Resolve(rootCtx, m, ch)
-		mutex.Lock()
-		m.Close()
-
-		mutex.Unlock()
+		executeMonitor(rootCtx, param, masterMm, &factory.mutex, pool)
 		// 根模块处理完毕，关闭以通知其他模块停止工作，
-		waitCancelFunc()
+		slaveCancelFunc()
 		// 等待其他模块处理
 		wg.Wait()
 		// 处理结束，关闭
-		rootCancelFunc()
+		masterCancelFunc()
 	}()
 
 	// 等待所有模块加载完毕
-	p.WaitReady()
-	log.Info("Load monitors ok")
-	return
+	pool.WaitReady()
+	log.Info("Load monitor modules finished")
 }
 
-func initMm(param bcc.PreParam) ([]*bcc.Monitor, *bcc.Monitor, int, int) {
-	var lastMonitor *bcc.Monitor
-	monitors := make([]*bcc.Monitor, len(factoryList))
+func (factory *DefaultMmFactory) initMm(param bcc.PreParam) (*modules.MonitorModule, []*modules.MonitorModule) {
+	var mergedBuilders = mergeMonitorBuilders(factory.builders)
+	var type2MonitorModules = initMonitorModules(param, mergedBuilders)
 
-	var type2Factory = make(map[reflect.Type][]modules.ModuleFactory)
-	for i := range factoryList {
-		var factory = factoryList[i]
-		var factoryType = reflect.TypeOf(factory)
+	var masterModules, slaveModules = type2MonitorModules[modules.FinallyType], type2MonitorModules[modules.NormalType]
 
-		type2Factory[factoryType] = append(type2Factory[factoryType], factory)
+	if helper.IsNil(slaveModules) {
+		slaveModules = make([]*modules.MonitorModule, 0)
+	}
+	if len(masterModules) != 1 {
+		log.Fatalf("Can't find the only monitor module marked as the last")
 	}
 
-	var finalFactoryList = make([]modules.ModuleFactory, 0)
-	for _, factoryList := range type2Factory {
-		if len(factoryList) == 0 {
-			continue
-		}
-		var mergeFunc = factoryList[0].Merge
-		var afterMergedFactoryList = mergeFunc(factoryList)
-		for i := range afterMergedFactoryList {
-			if helper.IsNotNil(afterMergedFactoryList[i]) {
-				finalFactoryList = append(finalFactoryList, afterMergedFactoryList[i])
-			}
-		}
-	}
+	return masterModules[0], slaveModules
+}
 
-	mmList = make([]*modules.MonitorModule, len(finalFactoryList))
+func createRootCtx(ctx context.Context) context.Context {
+	rootCtx, cancelFunc := context.WithCancel(ctx)
+	state.RegisterHandler(state.Exit, func(_ error) error {
+		cancelFunc()
+		return nil
+	})
+	return rootCtx
+}
 
-	cnt, lastIdx := 0, -1
-	for idx, factory := range finalFactoryList {
-		var mm = factory.Build()
-		mmList[idx] = mm
-		tmpMonitor, end, skip := modules.ModuleInit(mm, param)
-		if skip {
-			continue
-		}
-		if end {
-			if lastIdx >= 0 {
-				log.Errorf("Only one monitor can be set end")
-			}
-			lastMonitor = tmpMonitor
-			lastIdx = idx
-			cnt++
-			continue
-		}
-		monitors[idx] = tmpMonitor
-		cnt++
-	}
+var defaultMmFactory = NewDefaultMmFactory()
 
-	if lastIdx < 0 {
-		log.Errorf("No monitor be set end")
-	}
-	if cnt == 0 {
-		log.Errorf("No invalid monitors")
-	}
-	return monitors, lastMonitor, lastIdx, cnt
+func Register(mm modules.ModuleBuilder) {
+	defaultMmFactory.Register(mm)
+}
+
+func Load(ctx context.Context, pool *data.Pool, param bcc.PreParam) {
+	defaultMmFactory.Load(ctx, pool, param)
 }

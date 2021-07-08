@@ -6,6 +6,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
@@ -24,7 +25,7 @@ type xInstallSpecialMappingEvent struct {
 }
 
 func (x xInstallSpecialMappingEvent) Render() *data.AnalyseData {
-	mappedName := data.TrimBytes2Str(x.Name[:])
+	mappedName := helper.TrimBytes2Str(x.Name[:])
 	return data.NewAnalyseData(form.NewMarkdown("映射特殊页: "+mappedName)).
 		PutExtra(virtualm.VmaFlag, virtualm.MapVmaEvent{
 			NewVma: virtualm.BuildVma(x.Addr, x.Addr+x.Len, x.Flags, 0, mappedName),
@@ -33,8 +34,8 @@ func (x xInstallSpecialMappingEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "_install_special_mapping",
-		Source:  archSetupAdditionalPagesSource,
+		Name:   "_install_special_mapping",
+		Source: archSetupAdditionalPagesSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__x_install_special_mapping", "_install_special_mapping", -1),
 		},

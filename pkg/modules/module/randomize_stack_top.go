@@ -40,8 +40,8 @@ func (r randomizeStackTopEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "randomize_stack_top",
-		Source:  randomizeStackTopSource,
+		Name:   "randomize_stack_top",
+		Source: randomizeStackTopSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__randomize_stack_top", "randomize_stack_top", -1),
 			bcc.NewKretprobeEvent("kretprobe__randomize_stack_top", "randomize_stack_top", -1),

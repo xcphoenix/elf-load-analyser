@@ -2,9 +2,8 @@ package helper
 
 import (
 	"fmt"
+	"log"
 	"reflect"
-
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 type ValidateError struct {
@@ -17,7 +16,7 @@ func (v ValidateError) Error() string {
 
 func EqualWithTip(expected, actual interface{}, errorMsg string) {
 	Equal(expected, actual, func(e, a interface{}) {
-		log.Error(&ValidateError{msg: errorMsg})
+		log.Fatal(&ValidateError{msg: errorMsg})
 	})
 }
 
@@ -29,7 +28,7 @@ func Equal(expected, actual interface{}, handler func(e, a interface{})) {
 
 func Predicate(predicate func() bool, errorMsg string) {
 	if !predicate() {
-		log.Error(&ValidateError{msg: errorMsg})
+		log.Fatal(&ValidateError{msg: errorMsg})
 	}
 }
 
@@ -46,9 +45,10 @@ func IsNil(i interface{}) bool {
 	if i == nil {
 		return true
 	}
-	v := reflect.ValueOf(i)
-	if v.Kind() == reflect.Ptr {
-		return v.IsNil()
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.UnsafePointer, reflect.Ptr,
+		reflect.Interface, reflect.Slice:
+		return reflect.ValueOf(i).IsNil()
 	}
 	return false
 }

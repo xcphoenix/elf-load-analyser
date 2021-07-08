@@ -24,7 +24,7 @@ func (z flushThreadEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "flush_thread",
+		Name:     "flush_thread",
 		Source:   flushThreadSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__flush_thread", "flush_thread", -1)},
 		CanMerge: true,

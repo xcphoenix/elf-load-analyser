@@ -3,8 +3,8 @@ package xelf
 import (
 	"debug/elf"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"os"
 	"testing"
 )
@@ -12,11 +12,11 @@ import (
 func TestBuildRela(t *testing.T) {
 	f, err := getELFFile("./testdata/rel.o")
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 	sra, err := BuildRelIf(f, false)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 	assert.Equal(t, 2, len(sra))
 	textSra := sra[0]
@@ -30,11 +30,11 @@ func TestBuildRela(t *testing.T) {
 func TestBuildRela_dyn(t *testing.T) {
 	f, err := getELFFile("./testdata/lib.so")
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 	sr, err := BuildRelIf(f, true)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 	fmt.Println(sr)
 }

@@ -7,9 +7,9 @@ import (
 	"os"
 	"strconv"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xelf"
 )
 
@@ -36,7 +36,7 @@ func (e *ElfRender) elfData() (elf.FileHeader, bool, string) {
 	isDyn := !xelf.IsNotDynamic(e.f)
 	interp, err := xelf.GetInterp(e.f)
 	if err != nil {
-		log.Errorf("Read elf interp error: %v", err)
+		log.Fatalf("Read elf interp error: %v", err)
 	}
 	return fHeader, isDyn, interp
 }

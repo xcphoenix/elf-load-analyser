@@ -2,7 +2,7 @@ package web
 
 import (
 	"encoding/json"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"sync"
 )
@@ -15,7 +15,7 @@ func AnalyseReportService(w http.ResponseWriter, _ *http.Request) {
 		var err error
 		serialDataBytes, err = json.Marshal(analyseDataCenter)
 		if err != nil {
-			log.Errorf("Serialize report data failed, %v", err)
+			log.Fatalf("Serialize report data failed, %v", err)
 		}
 	})
 	_, _ = w.Write(serialDataBytes)

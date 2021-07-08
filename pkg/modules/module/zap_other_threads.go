@@ -24,7 +24,7 @@ func (z zapOtherThreadEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "zap_other_threads",
+		Name:     "zap_other_threads",
 		Source:   zapOtherThreadsSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__zap_other_threads", "zap_other_threads", -1)},
 		CanMerge: true,

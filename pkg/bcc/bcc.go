@@ -3,7 +3,7 @@ package bcc
 import (
 	"debug/elf"
 	bpf "github.com/iovisor/gobpf/bcc"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 )
@@ -41,10 +41,6 @@ type PreParam struct {
 	Header elf.FileHeader
 	IsDyn  bool
 	Interp string
-}
-
-func BuildCtx(path string) PreParam {
-	return PreParam{Path: path}
 }
 
 type action interface {
@@ -106,7 +102,7 @@ func (m *Monitor) AddEvent(event *Event) *Monitor {
 // DoAction 执行 attach operation 操作
 func (m *Monitor) DoAction() *bpf.Module {
 	if len(m.event2Action) == 0 {
-		log.Errorf("Monitor %s missing event", m.Name)
+		log.Fatalf("Name %s missing event", m.Name)
 	}
 
 	module := m.initialize()
@@ -116,10 +112,10 @@ func (m *Monitor) DoAction() *bpf.Module {
 		action := *action
 		fd, err := action.Load(module)
 		if err != nil {
-			log.Errorf("Failed to load event %v, %v", *event, err)
+			log.Fatalf("Failed to load event %v, %v", *event, err)
 		}
 		if err = action.Attach(module, fd); err != nil {
-			log.Errorf("Failed to attach event %v, %v", *event, err)
+			log.Fatalf("Failed to attach event %v, %v", *event, err)
 		}
 	}
 	return module

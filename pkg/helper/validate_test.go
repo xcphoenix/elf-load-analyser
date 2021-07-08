@@ -10,4 +10,10 @@ func TestIsNil(t *testing.T) {
 	assert.Equal(t, true, IsNil(nil))
 	assert.Equal(t, true, a != nil)
 	assert.Equal(t, true, IsNil(a))
+
+	type Fn func() error
+	var fn Fn
+	var ifn interface{} = fn
+	assert.Equal(t, true, IsNil(fn))
+	assert.Equal(t, true, IsNil(ifn))
 }

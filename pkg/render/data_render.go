@@ -5,14 +5,12 @@ import (
 	"errors"
 	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/enhance" // import plugin handlers
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
-	"github.com/xcphoenix/elf-load-analyser/pkg/xsys/xfs"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 var dataCenter = make([]*data.AnalyseData, 3)
@@ -27,23 +25,19 @@ func PreAnalyse(param *bcc.PreParam) {
 	if e != nil {
 		var formatErr *elf.FormatError
 		if ok := errors.As(e, &formatErr); ok {
-			log.Errorf("Invalid elf file, %v", e)
+			log.Fatalf("Invalid elf file, %v", e)
 		} else {
-			log.Errorf("Analyse target binary form error, %v", e)
+			log.Fatalf("Analyse target binary form error, %v", e)
 		}
 	}
 	param.Header, param.IsDyn, param.Interp = elfRender.elfData()
-
-	// cache inode
-	_, _ = xfs.FileINode(param.Path)
-	_, _ = xfs.FileINode(param.Interp)
 
 	d, _ = doRender(elfRender)
 	dataCenter[1] = d
 }
 
 // DoAnalyse 执行数据分析
-func DoAnalyse(p *factory.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
+func DoAnalyse(p *data.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
 	dataList := p.Data()
 
 	var wg sync.WaitGroup

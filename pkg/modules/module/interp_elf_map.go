@@ -42,8 +42,8 @@ func (e interpElfMapPropEventType) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "interp_elf_map",
-		Source:  interpElfMapSource,
+		Name:   "interp_elf_map",
+		Source: interpElfMapSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__elf_map", "elf_map", -1),
 			bcc.NewKretprobeEvent("kretprobe__elf_map", "elf_map", -1),

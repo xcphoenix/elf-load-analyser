@@ -24,7 +24,7 @@ func (e execMmReleaseEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor:  "exec_mm_release",
+		Name:     "exec_mm_release",
 		Source:   execMmReleaseSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__exec_mm_release", "exec_mm_release", -1)},
 		CanMerge: true,

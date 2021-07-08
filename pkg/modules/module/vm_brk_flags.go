@@ -64,8 +64,8 @@ func (v vmBrkFlagsEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "vm_brk_flags",
-		Source:  vmBrkFlagsSource,
+		Name:   "vm_brk_flags",
+		Source: vmBrkFlagsSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__total_mapping_size", "total_mapping_size", -1),
 			bcc.NewKprobeEvent("kprobe__vm_brk_flags", "vm_brk_flags", -1),

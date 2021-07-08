@@ -10,7 +10,7 @@ func NewUretprobeEvent(name, fnName, fileName string, pid int) *Event {
 	e := NewEvent(UretprobeType, name, fnName)
 	ke := UretprobeEvent{
 		UprobeEvent: UprobeEvent{
-			inner:    e,
+			event:    e,
 			fileName: fileName,
 			pid:      pid,
 		},
@@ -20,5 +20,5 @@ func NewUretprobeEvent(name, fnName, fileName string, pid int) *Event {
 }
 
 func (e *UretprobeEvent) Attach(m *bpf.Module, fd int) error {
-	return m.AttachUretprobe(e.fileName, e.inner.FnName, fd, e.pid)
+	return m.AttachUretprobe(e.fileName, e.event.FnName, fd, e.pid)
 }

@@ -2,7 +2,7 @@ package virtualm
 
 import (
 	_ "embed" // embed echarts assets file
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"net/http"
 )

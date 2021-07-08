@@ -88,8 +88,8 @@ func (e elfMapPropEventType) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "elf_map",
-		Source:  elfMapSource,
+		Name:   "elf_map",
+		Source: elfMapSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__elf_map", "elf_map", -1),
 			bcc.NewKretprobeEvent("kretprobe__elf_map", "elf_map", -1),

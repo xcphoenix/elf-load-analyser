@@ -24,8 +24,8 @@ func (a bprmExecveEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "bprm_execve",
-		Source:  bprmExecveSrc,
+		Name:   "bprm_execve",
+		Source: bprmExecveSrc,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__bprm_execve", "bprm_execve", -1),
 		},

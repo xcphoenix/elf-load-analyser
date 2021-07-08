@@ -43,8 +43,8 @@ func (a archRandomizeBrkEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "heap-scope",
-		Source:  archRandomizeBrkSource,
+		Name:   "heap-scope",
+		Source: archRandomizeBrkSource,
 		Events: []*bcc.Event{
 			bcc.NewKretprobeEvent("kretprobe__arch_randomize_brk", "arch_randomize_brk", -1),
 			bcc.NewKretprobeEvent("kretprobe__arch_setup_additional_pages", "arch_setup_additional_pages", -1),

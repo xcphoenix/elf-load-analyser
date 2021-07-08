@@ -5,7 +5,7 @@ import (
 )
 
 type UprobeEvent struct {
-	inner    *Event
+	event    *Event
 	fileName string
 	pid      int
 }
@@ -14,7 +14,7 @@ type UprobeEvent struct {
 func NewUprobeEvent(name, fnName, fileName string, pid int) *Event {
 	e := NewEvent(UprobeType, name, fnName)
 	ue := UprobeEvent{
-		inner:    e,
+		event:    e,
 		fileName: fileName,
 		pid:      pid,
 	}
@@ -23,9 +23,9 @@ func NewUprobeEvent(name, fnName, fileName string, pid int) *Event {
 }
 
 func (e *UprobeEvent) Attach(m *bpf.Module, fd int) error {
-	return m.AttachUprobe(e.fileName, e.inner.FnName, fd, e.pid)
+	return m.AttachUprobe(e.fileName, e.event.FnName, fd, e.pid)
 }
 
 func (e *UprobeEvent) Load(m *bpf.Module) (int, error) {
-	return m.LoadUprobe(e.inner.Name)
+	return m.LoadUprobe(e.event.Name)
 }

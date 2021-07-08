@@ -44,8 +44,8 @@ func (m mprotectFixupEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "mprotect_fixup",
-		Source:  mprotectFixupSource,
+		Name:   "mprotect_fixup",
+		Source: mprotectFixupSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__setup_arg_pages", "setup_arg_pages", -1),
 			bcc.NewKprobeEvent("kprobe__mprotect_fixup", "mprotect_fixup", -1),

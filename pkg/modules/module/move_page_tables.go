@@ -30,8 +30,8 @@ func (m movePageTablesEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "move_page_tables",
-		Source:  movePageTablesSource,
+		Name:   "move_page_tables",
+		Source: movePageTablesSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__move_page_tables", "move_page_tables", -1),
 		},

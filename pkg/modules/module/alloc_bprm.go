@@ -6,6 +6,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
+	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules/perf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/enhance"
@@ -30,9 +31,9 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 	res := data.NewSet(
 		form.NewMarkdown("分配空间，保存二进制文件参数"),
 		form.NewFmtList(form.Fmt{
-			{"filename: %q", data.TrimBytes2Str(a.Filename[:])},
-			{"fdpath:   %q", data.TrimBytes2Str(a.Fdpath[:])},
-			{"interp:   %q", data.TrimBytes2Str(a.Interp[:])},
+			{"filename: %q", helper.TrimBytes2Str(a.Filename[:])},
+			{"fdpath:   %q", helper.TrimBytes2Str(a.Fdpath[:])},
+			{"interp:   %q", helper.TrimBytes2Str(a.Interp[:])},
 			{"rlimit stack cur:   0x%X", a.RlimCur},
 			{"rlimit stack max:   0x%X", a.RlimMax},
 			{"current of top mem: 0x%X", a.CurTopOfMem},
@@ -43,8 +44,8 @@ func (a allocBprmEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "alloc_bprm",
-		Source:  allowBprmSource,
+		Name:   "alloc_bprm",
+		Source: allowBprmSource,
 		Events: []*bcc.Event{
 			bcc.NewKretprobeEvent("kretprobe__alloc_bprm", "alloc_bprm", -1),
 		},

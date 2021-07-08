@@ -64,8 +64,8 @@ func (s setupArgPageEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "setup_arg_pages",
-		Source:  setupArgPagesEventSource,
+		Name:   "setup_arg_pages",
+		Source: setupArgPagesEventSource,
 		Events: []*bcc.Event{
 			bcc.NewKprobeEvent("kprobe__setup_arg_pages", "setup_arg_pages", -1),
 			bcc.NewKretprobeEvent("kretprobe__arch_align_stack", "arch_align_stack", -1),

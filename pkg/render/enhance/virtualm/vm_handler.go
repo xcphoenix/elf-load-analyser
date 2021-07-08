@@ -3,9 +3,9 @@ package virtualm
 import (
 	"bytes"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data/form"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"net/http"
 	"strconv"
@@ -51,7 +51,7 @@ func (v vmShowDataHandler) Handle(dataCollection []*data.AnalyseData) ([]*data.A
 
 			url := apiPrefix + strconv.Itoa(cnt)
 			cnt++
-			bar := vm.ChartsRender("/assets/")
+			bar := vm.RenderCharts("/assets/")
 			vmHandlers = append(vmHandlers, plugin.BuildReqHandler(url, func(w http.ResponseWriter, r *http.Request) {
 				if _, ok := v.htmlCache[url]; !ok {
 					var buf bytes.Buffer

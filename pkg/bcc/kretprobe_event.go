@@ -10,7 +10,7 @@ func NewKretprobeEvent(name string, fnName string, maxActive int) *Event {
 	e := NewEvent(KretprobeType, name, fnName)
 	ke := KretprobeEvent{
 		KprobeEvent: KprobeEvent{
-			inner:     e,
+			event:     e,
 			maxActive: maxActive,
 		},
 	}
@@ -19,5 +19,5 @@ func NewKretprobeEvent(name string, fnName string, maxActive int) *Event {
 }
 
 func (e *KretprobeEvent) Attach(m *bpf.Module, fd int) error {
-	return m.AttachKretprobe(e.inner.FnName, fd, e.maxActive)
+	return m.AttachKretprobe(e.event.FnName, fd, e.maxActive)
 }

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"runtime"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 // requiredConfigs kernel required configuration,
@@ -31,13 +31,13 @@ func CheckEnv() {
 
 	// Check kernel version
 	if GetKernelVersion() < "4.1" {
-		log.Errorf("Kernel version too old, linux kernel version 4.1 or newer is required\n" +
+		log.Fatalf("Kernel version too old, linux kernel version 4.1 or newer is required\n" +
 			"You can see \"https://github.com/iovisor/bcc/blob/master/INSTALL.md\"")
 	}
 
 	// Check kernel config
 	if !ValidateKernelConfigs(kernelConfigGzFile, requiredConfigs...) {
-		log.Errorf(generalConfigTip())
+		log.Fatalf(generalConfigTip())
 	}
 }
 

@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"reflect"
 
 	bpf "github.com/iovisor/gobpf/bcc"
@@ -34,21 +34,29 @@ type ModuleResolver interface {
 	Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData)
 }
 
-// ModuleFactory 模块构造器
-type ModuleFactory interface {
+// ModuleBuilder 模块构造器
+type ModuleBuilder interface {
 	// Build 创建模块
 	Build() *MonitorModule
 	// Merge 合并模块, moduleList 中的元素不为空
-	Merge(moduleList []ModuleFactory) []ModuleFactory
+	Merge(moduleList []ModuleBuilder) []ModuleBuilder
 }
+
+type MonitorModuleType uint
+
+const (
+	NormalType MonitorModuleType = iota
+	FinallyType
+	IgnoredType
+)
 
 // MonitorModule 模块抽象接口
 type MonitorModule struct {
 	// ModuleResolver 解析
 	ModuleResolver
 
-	// Monitor 返回模块的名称
-	Monitor string
+	// Name 返回模块的名称
+	Name string
 	// Source 返回注入的 bcc 源码
 	Source string
 	// Events 返回要注册的事件
@@ -59,26 +67,38 @@ type MonitorModule struct {
 	CanMerge bool
 	// LazyInit 延迟初始化
 	LazyInit func(mm *MonitorModule, param bcc.PreParam) bool
+	// Monitor 获取 `bcc.Monitor`
+	Monitor func() *bcc.Monitor
 }
 
-// ModuleInit 初始化 Module, 返回创建的 Monitor、是否标记为 end，是否跳过此 Module
-func ModuleInit(mm *MonitorModule, param bcc.PreParam) (*bcc.Monitor, bool, bool) {
+// ModuleInit 初始化 Module, 返回创建的 Name、是否标记为 end，是否跳过此 Module
+func ModuleInit(mm *MonitorModule, param bcc.PreParam) MonitorModuleType {
 	// check
-	helper.Predicate(func() bool { return mm != nil && len(mm.Monitor) > 0 && len(mm.Source) > 0 }, "Invalid monitor")
+	helper.Predicate(func() bool {
+		return mm != nil && len(mm.Name) > 0 && len(mm.Source) > 0
+	}, "Invalid monitor")
 
 	// lazy init
 	if mm.LazyInit != nil {
 		if skip := mm.LazyInit(mm, param); skip {
-			return nil, false, true
+			return IgnoredType
 		}
 	}
 
 	// create
-	m := bcc.NewMonitor(mm.Monitor, mm.Source, defaultFlags)
+	m := bcc.NewMonitor(mm.Name, mm.Source, defaultFlags)
 	for _, event := range mm.Events {
 		m.AddEvent(event)
 	}
-	return m, mm.IsEnd, false
+
+	mm.Monitor = func() *bcc.Monitor {
+		return m
+	}
+
+	if mm.IsEnd {
+		return FinallyType
+	}
+	return NormalType
 }
 
 func RenderHandler(event EventResult, eventBuilder func() EventResult) func(data []byte) (*data.AnalyseData, error) {

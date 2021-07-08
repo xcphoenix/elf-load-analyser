@@ -24,7 +24,7 @@ func (z xCleanupSighandEvent) Render() *data.AnalyseData {
 
 func init() {
 	m := perf.NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "unshare_sighand",
+		Name: "unshare_sighand",
 		// __cleanup_sighand 是 unshare_sighand 的最后一步，由于无法监控 unshare_sighand 函数，这里用 __clean_sighand 来替代
 		Source:   xCleanupSighandSource,
 		Events:   []*bcc.Event{bcc.NewKprobeEvent("kprobe__x__cleanup_sighand", "__cleanup_sighand", -1)},

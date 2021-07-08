@@ -3,10 +3,9 @@ package web
 import (
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"net"
@@ -20,16 +19,20 @@ var (
 	analyseDataCenter []*data.AnalyseData
 )
 
-var XFlagSet = xflag.OpInject(&port, "port", uint(0), "web server port, default use random",
-	func() error {
+var XFlagSet = xflag.OpInject(&xflag.FlagValue{
+	Target: &port,
+	Name:   "port",
+	Usage:  "web port, use random port value by default",
+	Validator: func() error {
 		if port >= 65535 {
 			return fmt.Errorf("invalid port: %v", port)
 		}
 		return nil
-	})
+	},
+})
 
 // VisualAnalyseData 数据展示
-func VisualAnalyseData(p *factory.Pool) {
+func VisualAnalyseData(p *data.Pool) {
 	renderedData, reqHandlers := render.DoAnalyse(p)
 	go startWebService(renderedData, reqHandlers)
 }
@@ -46,12 +49,12 @@ func startWebService(d []*data.AnalyseData, reqHandlers []plugin.ReqHandler) {
 	for {
 		addr, err := getAnyFreeAddr()
 		if err != nil {
-			log.Errorf("Cannot start web server: %v", err)
+			log.Fatalf("Cannot start web server: %v", err)
 		}
 
 		//goland:noinspection ALL
-		log.Infof(log.Em("Try to start web server on %s"), "http://"+addr)
-		log.Infof(log.Em("you can view analysis report through this link"))
+		log.Infof("Try to start web server on http://%s", addr)
+		log.Info("you can view analysis report through this link")
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
 			errType := syscall.EADDRINUSE
@@ -61,7 +64,7 @@ func startWebService(d []*data.AnalyseData, reqHandlers []plugin.ReqHandler) {
 				port = 0
 				continue
 			}
-			log.Errorf("Failed to start web service, %v", err)
+			log.Fatalf("Failed to start web service, %v", err)
 		}
 		break
 	}
@@ -89,7 +92,7 @@ func getAnyFreeAddr() (string, error) {
 		}
 		e := listener.Close()
 		if e != nil {
-			log.Errorf("Release random port error, %v", e)
+			log.Fatalf("Release random port error, %v", e)
 		}
 	}()
 	return "0.0.0.0:" + strconv.Itoa(listener.Addr().(*net.TCPAddr).Port), nil

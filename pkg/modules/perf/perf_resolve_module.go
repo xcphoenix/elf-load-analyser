@@ -12,8 +12,8 @@ import (
 	"time"
 
 	bpf "github.com/iovisor/gobpf/bcc"
+	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
-	"github.com/xcphoenix/elf-load-analyser/pkg/log"
 )
 
 const EndFlag = "_END_"
@@ -64,16 +64,16 @@ func (p *ResolveMm) Build() *modules.MonitorModule {
 }
 
 // Merge 合并模块
-func (p *ResolveMm) Merge(moduleList []modules.ModuleFactory) []modules.ModuleFactory {
+func (p *ResolveMm) Merge(moduleList []modules.ModuleBuilder) []modules.ModuleBuilder {
 	if len(moduleList) == 0 {
 		return moduleList
 	}
 
-	var finalModules = make([]modules.ModuleFactory, 0)
+	var finalModules = make([]modules.ModuleBuilder, 0)
 	var mergedPerfMm = NewPerfResolveMm(&modules.MonitorModule{
-		Monitor: "~",
-		Source:  "",
-		Events:  make([]*bcc.Event, 0),
+		Name:   "~",
+		Source: "",
+		Events: make([]*bcc.Event, 0),
 	})
 	for i := range moduleList {
 		perfFactory, ok := moduleList[i].(*ResolveMm)
@@ -114,7 +114,7 @@ func (p *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) 
 	tableChannel := make(chan []byte)
 	p.tableIds = append(p.tableIds, name)
 	p.table2Ctx[name] = &TableCtx{
-		Name:    fmt.Sprintf("%s%s", helper.IfElse(len(p.Monitor) == 0, "", p.Monitor+"@").(string), name),
+		Name:    fmt.Sprintf("%s%s", helper.IfElse(len(p.Name) == 0, "", p.Name+"@").(string), name),
 		loop:    loop,
 		channel: tableChannel,
 		handler: handler,
@@ -146,7 +146,7 @@ func (p *ResolveMm) IsEnd() bool {
 // Resolve 模块的解析策略
 func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
 	if len(p.tableIds) == 0 {
-		log.Warnf("Monitor %q without event", p.Monitor)
+		log.Warnf("Name %q without event", p.Name)
 		readyNotify(ch)
 		return
 	}
@@ -204,7 +204,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 				}
 			} else if chosen == chCnt+1 {
 				// 接收到终止信号
-				log.Debugf("Monitor %q exit", p.Monitor)
+				log.Debugf("Name %q exit", p.Name)
 				startEnd <- struct{}{}
 			} else if chosen == chCnt+2 {
 				break
@@ -217,7 +217,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	for _, perfMap := range perfMaps {
 		perfMap.Start()
 	}
-	log.Infof("Monitor %s start...", p.Monitor)
+	log.Infof("Monitor module %s start...", p.Name)
 	<-finish
 	// FIXME cannot stop on sometimes
 	go func() {
@@ -225,7 +225,7 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 			blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500)
 		}
 	}()
-	log.Infof("Monitor %s stop", p.Monitor)
+	log.Infof("Monitor module %s stop", p.Name)
 }
 
 func readyNotify(ch chan<- *data.AnalyseData) {
@@ -301,7 +301,7 @@ func initPerMaps(m *bpf.Module, p *ResolveMm) []*bpf.PerfMap {
 		t := bpf.NewTable(m.TableId(table), m)
 		perf, err := bpf.InitPerfMap(t, p.table2Ctx[table].channel, nil)
 		if err != nil {
-			log.Errorf("(%s, %s) Failed to init perf map: %v", p.Monitor, "events", err)
+			log.Fatalf("(%s, %s) Failed to init perf map: %v", p.Name, "events", err)
 		}
 		perfMaps[perI] = perf
 		perI++
