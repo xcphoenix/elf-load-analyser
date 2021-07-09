@@ -20,7 +20,7 @@ type AnalyseData struct {
 	ID       string         `json:"id"`
 	Name     string         `json:"name"`
 	Desc     string         `json:"desc"`
-	Data     *wrapContent   `json:"dataList"`
+	Data     *wrapContent   `json:"data"`
 	Status   Status         `json:"status"`
 	XType    Type           `json:"type"`
 
@@ -61,9 +61,7 @@ func (a AnalyseData) String() string {
 		a.XTime, a.Data, a.DataList, a.extra))
 }
 
-// NewAnalyseData create analyse dataList.
-// name: dataList name, if name == "" and use advantage_module, will be set `monitor name`@`event name` after rendered;
-// builder: cannot be null
+// NewAnalyseData create analyse data.
 func NewAnalyseData(content Content) *AnalyseData {
 	return newAnalyseData(OkStatus, "", content, nil, nil)
 }

@@ -147,112 +147,123 @@ func (resolveMm *ResolveMm) IsEnd() bool {
 	return resolveMm.MonitorModule.IsEnd
 }
 
-//nolint:funlen
 // Resolve 模块的解析策略
+//nolint:funlen
 func (resolveMm *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
+	var nameEntry = log.WithField("name", resolveMm.Name)
+
 	if len(resolveMm.tableIDs) == 0 {
-		log.Warnf("Monitor module %q has no tables to resolve", resolveMm.Name)
+		nameEntry.Warnf("Monitor has no tables to resolve")
 		ch <- skipAnalyseData
 		return
 	}
 
 	var perfMaps = resolveMm.initPerfMaps(m)
-	finish := make(chan struct{})
 
-	startEnd := make(chan struct{})
-	endNow := make(chan struct{})
+	// 接受到终止请求、接受到终止请求后将未处理的数据处理完成，最终结束解析操作
+	var terminating, terminated, end = ctx.Done(), make(chan struct{}), make(chan struct{})
 
-	chCnt := len(resolveMm.table2Ctx)
-	cnt := chCnt + 3 // ready stop startStop
-	remaining := cnt
-	cases, tableNames := buildSelectCase(cnt, resolveMm.table2Ctx, ch, ctx.Done(), endNow)
+	var tableNum = len(resolveMm.table2Ctx)
+	var tableCnt = tableNum
+	var cases, tableNames = buildBaseCases(resolveMm.table2Ctx, ch, terminating)
 
-	lastRemain := 0
-	if resolveMm.IsEnd() {
-		lastRemain++
-	}
-	wg := &sync.WaitGroup{}
+	var updateOnce sync.Once
 
 	go func() {
-		<-startEnd
-		<-time.After(500 * time.Millisecond)
-		endNow <- struct{}{}
-	}()
-
-	go func() {
-		defer func() {
-			wg.Wait()
-			// clear
-			for i := range cases {
-				cases[i].Chan = reflect.ValueOf(nil)
-			}
-			close(finish)
-		}()
-
-		for remaining > lastRemain {
+	LOOP:
+		for tableCnt > 0 {
 			// 返回选择的索引、如果是 recv，返回 value 是否有效，ok 返回 false 表示 channel 被关闭
-			chosen, value, ok := reflect.Select(cases)
-			//goland:noinspection GoLinterLocal
-			if value.IsValid() && ok && chosen < len(tableNames) {
-				tName := tableNames[chosen]
-				tableCtx := resolveMm.table2Ctx[tName]
-				d := value.Bytes()
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					handleData(d, tableCtx, ch)
-				}()
+			var chosen, value, _ = reflect.Select(cases)
+			switch {
+			case chosen < tableNum:
+				var tableCtx = resolveMm.table2Ctx[tableNames[chosen]]
+				handleData(value.Bytes(), tableCtx, ch)
+
 				if _, ok := tableCtx.mark[EndTag]; ok && resolveMm.IsEnd() {
-					startEnd <- struct{}{}
-				} else if tableCtx.loop {
+					cases = updateCases(&updateOnce, cases, terminated)
+				}
+
+				if tableCtx.loop {
 					continue
 				}
-			} else if chosen == chCnt+1 {
-				// 接收到终止信号
-				log.Debugf("Name %q exit", resolveMm.Name)
-				startEnd <- struct{}{}
-			} else if chosen == chCnt+2 {
-				break
+				tableCnt--
+			default:
+				switch chosen - tableNum {
+				case 0: // ready
+				case 1:
+					cases = updateCases(&updateOnce, cases, terminated)
+				case 2:
+					break LOOP
+				case 3:
+					close(terminated)
+				}
 			}
-			cases[chosen].Chan = reflect.ValueOf(nil)
-			remaining--
+			clearCase(&cases[chosen])
+		}
+		close(end)
+		for i := range cases {
+			clearCase(&cases[i])
 		}
 	}()
 
 	for _, perfMap := range perfMaps {
 		perfMap.Start()
 	}
-	log.Infof("Monitor module [ %-20s ] start work", resolveMm.Name)
+	nameEntry.Debug("Monitor start work")
 
-	<-finish
+	<-end
 	resolveMm.closePerfMaps(perfMaps)
 
-	log.Infof("Monitor module [ %-20s ] stop work", resolveMm.Name)
+	nameEntry.Debug("Monitor stop work")
 }
 
-func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
-	stop <-chan struct{}, endNow <-chan struct{}) ([]reflect.SelectCase, []string) {
-	chCnt := len(table2Ctx)
-	cases := make([]reflect.SelectCase, cnt)
-	tableNames := make([]string, chCnt)
+func clearCase(scase *reflect.SelectCase) {
+	scase.Chan = reflect.ValueOf(nil)
+}
 
-	i := 0
-	// receive bcc perf_submit
-	for t, c := range table2Ctx {
-		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(c.channel)}
-		tableNames[i] = t
-		i++
+func buildBaseCases(table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
+	stop <-chan struct{}) ([]reflect.SelectCase, []string) {
+	var ctxNum = len(table2Ctx)
+	var cases = make([]reflect.SelectCase, ctxNum)
+	var tableNames = make([]string, ctxNum)
+
+	var idx = 0
+
+	// bcc 事件
+	for tableName, ctx := range table2Ctx {
+		cases[idx] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ctx.channel),
+		}
+		tableNames[idx] = tableName
+		idx++
 	}
-	// send this module is ok
-	cases[chCnt] = reflect.SelectCase{
+	// 模块就绪事件
+	cases = append(cases, reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
 		Send: reflect.ValueOf(skipAnalyseData),
-	}
-	cases[chCnt+1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}
-	// 收到停止信号后延迟一段时间
-	cases[chCnt+2] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(endNow)}
+	})
+	// 模块终止事件
+	cases = append(cases, reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(stop),
+	})
 	return cases, tableNames
+}
+
+func updateCases(once *sync.Once, cases []reflect.SelectCase, terminated chan struct{}) []reflect.SelectCase {
+	once.Do(func() {
+		cases = append(cases, reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(terminated),
+		})
+		// 添加 default，当无其他事件时会被触发
+		cases = append(cases, reflect.SelectCase{
+			Dir: reflect.SelectDefault,
+		})
+	})
+	return cases
 }
 
 // execTimeoutTask 执行任务，当任务超时时，放到后台去执行
@@ -280,12 +291,14 @@ func execTimeoutTask(name string, task func(), timeout time.Duration) {
 // handleData 处理数据，解析为分析数据后，通过 chan 发送
 // FIXME: 有时 PerfMap 不能被及时关闭
 func handleData(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
-	log.Infof("Resolve data from %s", tableCtx.Name)
+	var bpfTableEntry = log.WithField("table", tableCtx.Name)
+
+	bpfTableEntry.Debugf("Resolve data")
 	analyseData, err := tableCtx.handler(d)
-	log.Debugf("Receive data from %q, %v", tableCtx.Name, analyseData)
+	bpfTableEntry.Debugf("Receive data: %v", analyseData)
 
 	if err != nil {
-		log.Warnf("Resolve %q error: %v", tableCtx.Name, err)
+		bpfTableEntry.Warnf("Resolve error: %v", err)
 	} else {
 		// generate name
 		if len(analyseData.Name) == 0 {
