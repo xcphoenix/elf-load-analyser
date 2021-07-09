@@ -78,7 +78,7 @@ func (ctx *stateCtx) updateStateInternal(s State, isInternal bool) {
 		}
 	}
 	if s == Exit {
-		log.Println()
+		fmt.Println()
 		if ctx.abnormalError != nil {
 			log.Fatalf("Program exited by error: %v", ctx.abnormalError)
 		} else {

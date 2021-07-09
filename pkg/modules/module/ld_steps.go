@@ -168,6 +168,6 @@ func init() {
 	m.RegisterTable("map_object_events", true, modules.RenderHandler(mapObjectFromFdEvent{}, nil))
 	// m.RegisterTable("mmap_events", true, modules.RenderHandler(&MmapEvent{}))
 
-	m.SetMark("start_user_prog_events", perf.EndFlag)
+	m.SetMark("start_user_prog_events", perf.EndTag)
 	factory.Register(m)
 }

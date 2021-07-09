@@ -16,7 +16,12 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 )
 
-const EndFlag = "_END_"
+// 内置标签
+const (
+	EndTag = "_END_" // 终止标志
+)
+
+var skipAnalyseData = data.NewOtherAnalyseData(data.InvalidStatus, "", nil)
 
 type TableHandler func(data []byte) (*data.AnalyseData, error)
 
@@ -43,7 +48,7 @@ func (t TableCtx) IterOperator(op func(string)) {
 // PerfResolveMm BaseMonitorModule 的高级抽象，封装 table 和 resolve 的处理
 type ResolveMm struct {
 	*modules.MonitorModule
-	tableIds  []string
+	tableIDs  []string
 	table2Ctx map[string]*TableCtx
 }
 
@@ -51,7 +56,7 @@ type ResolveMm struct {
 func NewPerfResolveMm(m *modules.MonitorModule) *ResolveMm {
 	perfMm := &ResolveMm{
 		MonitorModule: m,
-		tableIds:      []string{},
+		tableIDs:      []string{},
 		table2Ctx:     map[string]*TableCtx{},
 	}
 	perfMm.MonitorModule.ModuleResolver = perfMm
@@ -59,12 +64,12 @@ func NewPerfResolveMm(m *modules.MonitorModule) *ResolveMm {
 }
 
 // Build 返回实际的模块
-func (p *ResolveMm) Build() *modules.MonitorModule {
-	return p.MonitorModule
+func (resolveMm *ResolveMm) Build() *modules.MonitorModule {
+	return resolveMm.MonitorModule
 }
 
 // Merge 合并模块
-func (p *ResolveMm) Merge(moduleList []modules.ModuleBuilder) []modules.ModuleBuilder {
+func (resolveMm *ResolveMm) Merge(moduleList []modules.ModuleBuilder) []modules.ModuleBuilder {
 	if len(moduleList) == 0 {
 		return moduleList
 	}
@@ -86,7 +91,7 @@ func (p *ResolveMm) Merge(moduleList []modules.ModuleBuilder) []modules.ModuleBu
 			mergedPerfMm.Source = strings.Join([]string{mergedPerfMm.Source, perfFactory.Source}, "\n")
 			mergedPerfMm.Events = append(mergedPerfMm.Events, perfFactory.Events...)
 
-			mergedPerfMm.tableIds = append(mergedPerfMm.tableIds, perfFactory.tableIds...)
+			mergedPerfMm.tableIDs = append(mergedPerfMm.tableIDs, perfFactory.tableIDs...)
 			for table, ctx := range perfFactory.table2Ctx {
 				mergedPerfMm.table2Ctx[table] = ctx
 			}
@@ -101,25 +106,25 @@ func (p *ResolveMm) Merge(moduleList []modules.ModuleBuilder) []modules.ModuleBu
 }
 
 // RegisterOnceTable 注册 table，仅执行一次操作
-func (p *ResolveMm) RegisterOnceTable(name string, handler TableHandler) {
-	p.RegisterTable(name, false, handler)
+func (resolveMm *ResolveMm) RegisterOnceTable(name string, handler TableHandler) {
+	resolveMm.RegisterTable(name, false, handler)
 }
 
 // RegisterTable 注册 table, 若 loop 为 true，返回对应的 chan，否则返回 nil
-func (p *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) chan<- []byte {
+func (resolveMm *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) chan<- []byte {
 	name = strings.TrimSpace(name)
 	if handler == nil || len(name) == 0 {
 		return nil
 	}
 	tableChannel := make(chan []byte)
-	p.tableIds = append(p.tableIds, name)
-	p.table2Ctx[name] = &TableCtx{
-		Name:    fmt.Sprintf("%s%s", helper.IfElse(len(p.Name) == 0, "", p.Name+"@").(string), name),
+	resolveMm.tableIDs = append(resolveMm.tableIDs, name)
+	resolveMm.table2Ctx[name] = &TableCtx{
+		Name:    fmt.Sprintf("%s%s", helper.IfElse(len(resolveMm.Name) == 0, "", resolveMm.Name+"@").(string), name),
 		loop:    loop,
 		channel: tableChannel,
 		handler: handler,
 		mark:    map[string]struct{}{},
-		Monitor: *p.MonitorModule,
+		Monitor: *resolveMm.MonitorModule,
 	}
 	if !loop {
 		return nil
@@ -128,42 +133,42 @@ func (p *ResolveMm) RegisterTable(name string, loop bool, handler TableHandler) 
 }
 
 // SetMark 设置标记
-func (p *ResolveMm) SetMark(name string, mk string) *ResolveMm {
-	ctx, ok := p.table2Ctx[name]
+func (resolveMm *ResolveMm) SetMark(name string, mk string) *ResolveMm {
+	ctx, ok := resolveMm.table2Ctx[name]
 	if !ok {
-		return p
+		return resolveMm
 	}
 	ctx.mark[mk] = struct{}{}
-	return p
+	return resolveMm
 }
 
 // IsEnd 模块是否被设置为终止模块
-func (p *ResolveMm) IsEnd() bool {
-	return p.MonitorModule.IsEnd
+func (resolveMm *ResolveMm) IsEnd() bool {
+	return resolveMm.MonitorModule.IsEnd
 }
 
 //nolint:funlen
 // Resolve 模块的解析策略
-func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
-	if len(p.tableIds) == 0 {
-		log.Warnf("Name %q without event", p.Name)
-		readyNotify(ch)
+func (resolveMm *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.AnalyseData) {
+	if len(resolveMm.tableIDs) == 0 {
+		log.Warnf("Monitor module %q has no tables to resolve", resolveMm.Name)
+		ch <- skipAnalyseData
 		return
 	}
 
-	perfMaps := initPerMaps(m, p)
+	var perfMaps = resolveMm.initPerfMaps(m)
 	finish := make(chan struct{})
 
 	startEnd := make(chan struct{})
 	endNow := make(chan struct{})
 
-	chCnt := len(p.table2Ctx)
+	chCnt := len(resolveMm.table2Ctx)
 	cnt := chCnt + 3 // ready stop startStop
 	remaining := cnt
-	cases, tableNames := buildSelectCase(cnt, p.table2Ctx, ch, ctx.Done(), endNow)
+	cases, tableNames := buildSelectCase(cnt, resolveMm.table2Ctx, ch, ctx.Done(), endNow)
 
 	lastRemain := 0
-	if p.IsEnd() {
+	if resolveMm.IsEnd() {
 		lastRemain++
 	}
 	wg := &sync.WaitGroup{}
@@ -190,21 +195,21 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 			//goland:noinspection GoLinterLocal
 			if value.IsValid() && ok && chosen < len(tableNames) {
 				tName := tableNames[chosen]
-				tableCtx := p.table2Ctx[tName]
+				tableCtx := resolveMm.table2Ctx[tName]
 				d := value.Bytes()
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					dataProcessing(d, tableCtx, ch)
+					handleData(d, tableCtx, ch)
 				}()
-				if _, ok := tableCtx.mark[EndFlag]; ok && p.IsEnd() {
+				if _, ok := tableCtx.mark[EndTag]; ok && resolveMm.IsEnd() {
 					startEnd <- struct{}{}
 				} else if tableCtx.loop {
 					continue
 				}
 			} else if chosen == chCnt+1 {
 				// 接收到终止信号
-				log.Debugf("Name %q exit", p.Name)
+				log.Debugf("Name %q exit", resolveMm.Name)
 				startEnd <- struct{}{}
 			} else if chosen == chCnt+2 {
 				break
@@ -217,56 +222,12 @@ func (p *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<- *data.
 	for _, perfMap := range perfMaps {
 		perfMap.Start()
 	}
-	log.Infof("Monitor module %s start...", p.Name)
+	log.Infof("Monitor module [ %-20s ] start work", resolveMm.Name)
+
 	<-finish
-	// FIXME cannot stop on sometimes
-	go func() {
-		for idx, perfMap := range perfMaps {
-			blockTaskTimeout(p.tableIds[idx], func() { perfMap.Stop() }, time.Millisecond*500)
-		}
-	}()
-	log.Infof("Monitor module %s stop", p.Name)
-}
+	resolveMm.closePerfMaps(perfMaps)
 
-func readyNotify(ch chan<- *data.AnalyseData) {
-	ch <- data.NewOtherAnalyseData(data.InvalidStatus, "", nil)
-}
-
-func blockTaskTimeout(name string, task func(), timeout time.Duration) {
-	ch := make(chan struct{})
-	go func() {
-		task()
-		close(ch)
-	}()
-	select {
-	case <-ch:
-		return
-	case <-time.After(timeout):
-		log.Infof("notice: task %q timeout", name)
-		return
-	}
-}
-
-func dataProcessing(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
-	log.Infof("Resolve %q...", tableCtx.Name)
-	analyseData, err := tableCtx.handler(d)
-	log.Debugf("Receive data from %q, %v", tableCtx.Name, analyseData)
-
-	if err != nil {
-		log.Warnf("Event %q resolve error: %v", tableCtx.Name, err)
-	} else {
-		// generate name
-		if len(analyseData.Name) == 0 {
-			analyseData.Name = tableCtx.Name
-		}
-
-		// fill mark for render
-		tableCtx.IterOperator(func(s string) {
-			analyseData.PutExtra(s, struct{}{})
-		})
-
-		ch <- analyseData
-	}
+	log.Infof("Monitor module [ %-20s ] stop work", resolveMm.Name)
 }
 
 func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
@@ -286,7 +247,7 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	cases[chCnt] = reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(data.NewOtherAnalyseData(data.InvalidStatus, "", nil)),
+		Send: reflect.ValueOf(skipAnalyseData),
 	}
 	cases[chCnt+1] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(stop)}
 	// 收到停止信号后延迟一段时间
@@ -294,17 +255,81 @@ func buildSelectCase(cnt int, table2Ctx map[string]*TableCtx, ready chan<- *data
 	return cases, tableNames
 }
 
-func initPerMaps(m *bpf.Module, p *ResolveMm) []*bpf.PerfMap {
-	perI := 0
-	perfMaps := make([]*bpf.PerfMap, len(p.tableIds))
-	for _, table := range p.tableIds {
-		t := bpf.NewTable(m.TableId(table), m)
-		perf, err := bpf.InitPerfMap(t, p.table2Ctx[table].channel, nil)
-		if err != nil {
-			log.Fatalf("(%s, %s) Failed to init perf map: %v", p.Name, "events", err)
+// execTimeoutTask 执行任务，当任务超时时，放到后台去执行
+func execTimeoutTask(name string, task func(), timeout time.Duration) {
+	var channel = make(chan struct{})
+	var once sync.Once
+	go func() {
+		task()
+		once.Do(func() {
+			close(channel)
+		})
+	}()
+	select {
+	case <-channel:
+		return
+	case <-time.After(timeout):
+		once.Do(func() {
+			close(channel)
+		})
+		log.Warnf("notice: task %q timeout", name)
+		return
+	}
+}
+
+// handleData 处理数据，解析为分析数据后，通过 chan 发送
+// FIXME: 有时 PerfMap 不能被及时关闭
+func handleData(d []byte, tableCtx *TableCtx, ch chan<- *data.AnalyseData) {
+	log.Infof("Resolve data from %s", tableCtx.Name)
+	analyseData, err := tableCtx.handler(d)
+	log.Debugf("Receive data from %q, %v", tableCtx.Name, analyseData)
+
+	if err != nil {
+		log.Warnf("Resolve %q error: %v", tableCtx.Name, err)
+	} else {
+		// generate name
+		if len(analyseData.Name) == 0 {
+			analyseData.Name = tableCtx.Name
 		}
-		perfMaps[perI] = perf
-		perI++
+
+		// fill mark for render
+		tableCtx.IterOperator(func(s string) {
+			analyseData.PutExtra(s, struct{}{})
+		})
+
+		ch <- analyseData
+	}
+}
+
+// initPerfMaps 初始化 PerfMap
+func (resolveMm *ResolveMm) initPerfMaps(m *bpf.Module) []*bpf.PerfMap {
+	var idx = 0
+	var perfMaps = make([]*bpf.PerfMap, len(resolveMm.tableIDs))
+	for _, tableID := range resolveMm.tableIDs {
+		var bpfTable = bpf.NewTable(m.TableId(tableID), m)
+		perf, err := bpf.InitPerfMap(bpfTable, resolveMm.table2Ctx[tableID].channel, nil)
+		if err != nil {
+			log.Fatalf("Failed to init perf map for %q: %v", resolveMm.Name, err)
+		}
+		perfMaps[idx] = perf
+		idx++
 	}
 	return perfMaps
+}
+
+func (resolveMm *ResolveMm) closePerfMaps(perfMaps []*bpf.PerfMap) {
+	var perfMapCloseWg sync.WaitGroup
+	perfMapCloseWg.Add(len(perfMaps))
+
+	for idx, perfMap := range perfMaps {
+		var perfMap, tableCtx = perfMap, resolveMm.tableIDs[idx]
+		go func() {
+			execTimeoutTask(tableCtx, func() {
+				perfMap.Stop()
+			}, time.Millisecond*500)
+			perfMapCloseWg.Done()
+		}()
+	}
+
+	perfMapCloseWg.Wait()
 }

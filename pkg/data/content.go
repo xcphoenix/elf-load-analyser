@@ -36,7 +36,7 @@ func (c ContentSet) Data() (res interface{}) {
 	}
 	type ContentData = struct {
 		Class int8        `json:"type"`
-		Data  interface{} `json:"data"`
+		Data  interface{} `json:"dataList"`
 	}
 	contentDataList := make([]ContentData, len(c.contents))
 	for i := range c.contents {

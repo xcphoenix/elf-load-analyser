@@ -53,8 +53,7 @@ func startWebService(d []*data.AnalyseData, reqHandlers []plugin.ReqHandler) {
 		}
 
 		//goland:noinspection ALL
-		log.Infof("Try to start web server on http://%s", addr)
-		log.Info("you can view analysis report through this link")
+		log.Infof("Start web server on http://%s to show analysis report", addr)
 		err = http.ListenAndServe(addr, nil)
 		if err != nil {
 			errType := syscall.EADDRINUSE

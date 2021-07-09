@@ -52,7 +52,7 @@ func DoAnalyse(p *data.Pool) ([]*data.AnalyseData, []plugin.ReqHandler) {
 
 	wg.Wait()
 	log.Info("The collection of analyse data is all ready")
-	log.Info("Start execute render plugin enhance result...")
+	log.Info("Start to render data")
 
 	var reqHandlers []plugin.ReqHandler
 	for _, handler := range plugin.RenderPlugins() {
