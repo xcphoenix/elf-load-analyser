@@ -3,11 +3,10 @@ package render
 import (
 	"debug/elf"
 	"errors"
+	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/enhance" // import plugin handlers
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sync"
-
-	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
