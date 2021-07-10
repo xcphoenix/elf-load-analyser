@@ -61,7 +61,7 @@ var XFlagSet = xflag.OpInject(
 		WithValidator(newFileFd(&procArg.oFd, &procArg.oFile, false, 1).Fd),
 	xflag.NewFlagValue(&procArg.eFile, "err", "program stderr").
 		WithValidator(newFileFd(&procArg.eFd, &procArg.eFile, false, 2).Fd),
-	xflag.NewFlagValue(&procArg.childDaemon, "daemon", "child progress daemon"),
+	xflag.NewFlagValue(&procArg.childDaemon, "daemon", "child process daemon"),
 )
 
 func userValidator() error {

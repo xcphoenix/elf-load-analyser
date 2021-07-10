@@ -81,7 +81,7 @@ func CreateProcess() int {
 	// 关闭子进程
 	if !procArg.childDaemon {
 		state.RegisterHandler(state.Exit, func(_ error) error {
-			log.Infof("Start close child progress if live..")
+			log.Infof("Start close child process if live..")
 			_ = syscall.Kill(childPID, syscall.SIGKILL)
 			return nil
 		})
