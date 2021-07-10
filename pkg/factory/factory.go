@@ -9,6 +9,7 @@ import (
 	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type MonitorModuleFactory interface {
@@ -91,7 +92,10 @@ func executeMonitor(context context.Context,
 
 	mm.Resolve(context, m, pool.Chan())
 
-	mutex.Lock()
-	m.Close()
-	mutex.Unlock()
+	go func() {
+		<-time.After(time.Millisecond * 600)
+		mutex.Lock()
+		m.Close()
+		mutex.Unlock()
+	}()
 }

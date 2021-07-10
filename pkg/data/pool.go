@@ -1,5 +1,12 @@
 package data
 
+import (
+	"fmt"
+	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v7/decor"
+	"sync"
+)
+
 // Pool 数据池
 type Pool struct {
 	ch       chan *AnalyseData
@@ -39,6 +46,13 @@ func (p *Pool) Data() []*AnalyseData {
 //  waitCnt: 表示数据接收前要等待的次数
 func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
 	go func() {
+		var waitIdx = 0
+
+		var once sync.Once
+		var progress *mpb.Progress
+		var bar *mpb.Bar
+
+		var loadedMonitors = make(map[int]string)
 		for {
 			select {
 			case d, ok := <-p.ch:
@@ -47,10 +61,17 @@ func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
 					return
 				}
 
+				once.Do(func() {
+					progress, bar = loadProgress(waitCnt, loadedMonitors)
+				})
+
 				// 如果还未等待完成，丢弃数据，计数器减一
-				if waitCnt > 0 {
-					waitCnt--
-					if waitCnt == 0 {
+				if waitIdx < waitCnt {
+					loadedMonitors[waitIdx] = d.Desc
+					bar.Increment()
+					waitIdx++
+					if waitIdx == waitCnt {
+						progress.Wait()
 						// 开始接收数据
 						close(p.ready)
 					}
@@ -68,4 +89,31 @@ func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
 			}
 		}
 	}()
+}
+
+func loadProgress(cnt int, mm2Name map[int]string) (*mpb.Progress, *mpb.Bar) {
+	p := mpb.New()
+
+	name := "               Load Monitor:"
+	// adding a single bar, which will inherit container's width
+	bar := p.AddBar(
+		int64(cnt),
+		mpb.BarFillerClearOnComplete(),
+		mpb.PrependDecorators(
+			decor.Name(name, decor.WC{W: len([]rune(name)) + 1, C: decor.DidentRight}),
+			decor.OnComplete(
+				decor.Any(func(statistics decor.Statistics) string {
+					return mm2Name[int(statistics.Current-1)]
+				}, decor.WC{W: 15, C: decor.DidentRight}),
+				"Done!",
+			),
+		),
+		mpb.AppendDecorators(decor.Any(func(s decor.Statistics) string {
+			if s.Completed {
+				return ""
+			}
+			return fmt.Sprintf("%v / %v", s.Current, s.Total)
+		})),
+	)
+	return p, bar
 }

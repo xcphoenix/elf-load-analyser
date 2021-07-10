@@ -10,7 +10,7 @@ import (
 )
 
 //nolint:funlen
-func TestChannel(t *testing.T) {
+func TestLogical(t *testing.T) {
 	var senderNum = 50
 	var sendRecordCnt = senderNum
 	var senders = make([]chan int, senderNum)

@@ -21,8 +21,6 @@ const (
 	EndTag = "_END_" // 终止标志
 )
 
-var skipAnalyseData = data.NewOtherAnalyseData(data.InvalidStatus, "", nil)
-
 type TableHandler func(data []byte) (*data.AnalyseData, error)
 
 // TableCtx table context
@@ -154,7 +152,7 @@ func (resolveMm *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<
 
 	if len(resolveMm.tableIDs) == 0 {
 		nameEntry.Warnf("Monitor has no tables to resolve")
-		ch <- skipAnalyseData
+		ch <- readyAnalyseData(resolveMm.Name)
 		return
 	}
 
@@ -165,7 +163,7 @@ func (resolveMm *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<
 
 	var tableNum = len(resolveMm.table2Ctx)
 	var tableCnt = tableNum
-	var cases, tableNames = buildBaseCases(resolveMm.table2Ctx, ch, terminating)
+	var cases, tableNames = buildBaseCases(resolveMm, ch, terminating)
 
 	var updateOnce sync.Once
 
@@ -212,17 +210,22 @@ func (resolveMm *ResolveMm) Resolve(ctx context.Context, m *bpf.Module, ch chan<
 	nameEntry.Debug("Monitor start work")
 
 	<-end
-	resolveMm.closePerfMaps(perfMaps)
+	go resolveMm.closePerfMaps(perfMaps)
 
 	nameEntry.Debug("Monitor stop work")
+}
+
+func readyAnalyseData(name string) *data.AnalyseData {
+	return data.NewOtherAnalyseData(data.InvalidStatus, name, nil)
 }
 
 func clearCase(scase *reflect.SelectCase) {
 	scase.Chan = reflect.ValueOf(nil)
 }
 
-func buildBaseCases(table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseData,
+func buildBaseCases(mm *ResolveMm, ready chan<- *data.AnalyseData,
 	stop <-chan struct{}) ([]reflect.SelectCase, []string) {
+	var table2Ctx = mm.table2Ctx
 	var ctxNum = len(table2Ctx)
 	var cases = make([]reflect.SelectCase, ctxNum)
 	var tableNames = make([]string, ctxNum)
@@ -242,7 +245,7 @@ func buildBaseCases(table2Ctx map[string]*TableCtx, ready chan<- *data.AnalyseDa
 	cases = append(cases, reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(ready),
-		Send: reflect.ValueOf(skipAnalyseData),
+		Send: reflect.ValueOf(readyAnalyseData(mm.Name)),
 	})
 	// 模块终止事件
 	cases = append(cases, reflect.SelectCase{
@@ -283,7 +286,7 @@ func execTimeoutTask(name string, task func(), timeout time.Duration) {
 		once.Do(func() {
 			close(channel)
 		})
-		log.Warnf("notice: task %q timeout", name)
+		//log.Warnf("notice: task %q timeout", name)
 		return
 	}
 }
