@@ -52,7 +52,7 @@ func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, para
 		state.UpdateState(state.ProgramLoaded)
 	}()
 	// 当作为根的模块处理结束时，中止收集数据
-	pool.InitPool(masterMonitorCtx.Done(), mmCnt)
+	pool.InitPool(masterMonitorCtx.Done(), uint(mmCnt))
 
 	var wg = &sync.WaitGroup{}
 	wg.Add(mmCnt - 1)

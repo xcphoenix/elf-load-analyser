@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
-	"sync"
 )
 
 // Pool 数据池
@@ -44,15 +43,16 @@ func (p *Pool) Data() []*AnalyseData {
 // InitPool 初始化数据池
 //  done: 被关闭时，停止接收数据
 //  waitCnt: 表示数据接收前要等待的次数
-func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
+func (p *Pool) InitPool(done <-chan struct{}, waitCnt uint) {
 	go func() {
-		var waitIdx = 0
-
-		var once sync.Once
-		var progress *mpb.Progress
-		var bar *mpb.Bar
-
+		var waitIdx uint = 0
 		var loadedMonitors = make(map[int]string)
+
+		var progress, bar = loadProgress(waitCnt, loadedMonitors)
+		if waitCnt == 0 {
+			progress.Wait()
+		}
+
 		for {
 			select {
 			case d, ok := <-p.ch:
@@ -61,13 +61,9 @@ func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
 					return
 				}
 
-				once.Do(func() {
-					progress, bar = loadProgress(waitCnt, loadedMonitors)
-				})
-
 				// 如果还未等待完成，丢弃数据，计数器减一
 				if waitIdx < waitCnt {
-					loadedMonitors[waitIdx] = d.Desc
+					loadedMonitors[int(waitIdx)] = d.Desc
 					bar.Increment()
 					waitIdx++
 					if waitIdx == waitCnt {
@@ -91,7 +87,7 @@ func (p *Pool) InitPool(done <-chan struct{}, waitCnt int) {
 	}()
 }
 
-func loadProgress(cnt int, mm2Name map[int]string) (*mpb.Progress, *mpb.Bar) {
+func loadProgress(cnt uint, mm2Name map[int]string) (*mpb.Progress, *mpb.Bar) {
 	p := mpb.New()
 
 	name := "               Load Monitor:"
