@@ -29,7 +29,7 @@ define build_fronted
 endef
 
 bcc: OUT_SUFFIX := k
-bcc: SRC_DIR := $(WORK_DIR)/../pkg/modules/module/src
+bcc: SRC_DIR := $(WORK_DIR)/../pkg/module/src
 bcc:
 	@echo ""
 	@echo "====================== BCC ======================"

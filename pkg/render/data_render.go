@@ -3,7 +3,7 @@ package render
 import (
 	"debug/elf"
 	"errors"
-	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/ebpf"
 	_ "github.com/xcphoenix/elf-load-analyser/pkg/render/enhance" // import plugin handlers
 	"github.com/xcphoenix/elf-load-analyser/pkg/render/plugin"
 	"sync"
@@ -15,7 +15,7 @@ import (
 var dataCenter = make([]*data.AnalyseData, 3)
 
 // PreAnalyse 环境预分析
-func PreAnalyse(param *bcc.PreParam) {
+func PreAnalyse(param *ebpf.PreParam) {
 	// env
 	d, _ := doRender(NewEnvRender())
 	dataCenter[0] = d

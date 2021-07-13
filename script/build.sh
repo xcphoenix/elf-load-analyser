@@ -6,7 +6,7 @@ source ./merge.sh
 readonly TARGET="ela"
 readonly WORK_DIR=$(pwd)
 readonly GO_WORK="${WORK_DIR}/../"
-readonly SRC_DIR="${WORK_DIR}/../pkg/modules/module/src"
+readonly SRC_DIR="${WORK_DIR}/../pkg/module/src"
 readonly FRONTED_DIR="${WORK_DIR}/../pkg/web/template"
 
 # for banner.txt

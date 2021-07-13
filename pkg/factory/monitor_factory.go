@@ -4,28 +4,28 @@ import (
 	"context"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/monitor"
 	"sync"
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
+	"github.com/xcphoenix/elf-load-analyser/pkg/ebpf"
 )
 
 type DefaultMmFactory struct {
 	mutex         sync.Mutex
 	registerMutex sync.Mutex
-	builders      []modules.ModuleBuilder
+	builders      []monitor.Builder
 }
 
 func NewDefaultMmFactory() *DefaultMmFactory {
 	return &DefaultMmFactory{
-		builders: make([]modules.ModuleBuilder, 0),
+		builders: make([]monitor.Builder, 0),
 	}
 }
 
-func (factory *DefaultMmFactory) Register(mm modules.ModuleBuilder) {
+func (factory *DefaultMmFactory) Register(mm monitor.Builder) {
 	factory.registerMutex.Lock()
 	defer factory.registerMutex.Unlock()
 
@@ -35,7 +35,7 @@ func (factory *DefaultMmFactory) Register(mm modules.ModuleBuilder) {
 	factory.builders = append(factory.builders, mm)
 }
 
-func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, param bcc.PreParam) {
+func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, param ebpf.PreParam) {
 	factory.registerMutex.Lock()
 	defer factory.registerMutex.Unlock()
 
@@ -57,7 +57,7 @@ func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, para
 	var wg = &sync.WaitGroup{}
 	wg.Add(mmCnt - 1)
 
-	log.Info("Start to load monitor modules")
+	log.Info("Start to load monitor monitor")
 	for _, mm := range slaveMms {
 		var monitor = mm
 		go func() {
@@ -79,17 +79,17 @@ func (factory *DefaultMmFactory) Load(ctx context.Context, pool *data.Pool, para
 
 	// 等待所有模块加载完毕
 	pool.WaitReady()
-	log.Info("Load monitor modules finished")
+	log.Info("Load monitor monitor finished")
 }
 
-func (factory *DefaultMmFactory) initMm(param bcc.PreParam) (*modules.MonitorModule, []*modules.MonitorModule) {
+func (factory *DefaultMmFactory) initMm(param ebpf.PreParam) (*monitor.Monitor, []*monitor.Monitor) {
 	var mergedBuilders = mergeMonitorBuilders(factory.builders)
 	var type2MonitorModules = initMonitorModules(param, mergedBuilders)
 
-	var masterModules, slaveModules = type2MonitorModules[modules.FinallyType], type2MonitorModules[modules.NormalType]
+	var masterModules, slaveModules = type2MonitorModules[monitor.FinallyType], type2MonitorModules[monitor.NormalType]
 
 	if helper.IsNil(slaveModules) {
-		slaveModules = make([]*modules.MonitorModule, 0)
+		slaveModules = make([]*monitor.Monitor, 0)
 	}
 	if len(masterModules) != 1 {
 		log.Fatalf("Can't find the only monitor module marked as the last")
@@ -109,10 +109,10 @@ func createRootCtx(ctx context.Context) context.Context {
 
 var defaultMmFactory = NewDefaultMmFactory()
 
-func Register(mm modules.ModuleBuilder) {
+func Register(mm monitor.Builder) {
 	defaultMmFactory.Register(mm)
 }
 
-func Load(ctx context.Context, pool *data.Pool, param bcc.PreParam) {
+func Load(ctx context.Context, pool *data.Pool, param ebpf.PreParam) {
 	defaultMmFactory.Load(ctx, pool, param)
 }

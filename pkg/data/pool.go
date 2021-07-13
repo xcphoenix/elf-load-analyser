@@ -90,7 +90,7 @@ func (p *Pool) InitPool(done <-chan struct{}, waitCnt uint) {
 func loadProgress(cnt uint, mm2Name map[int]string) (*mpb.Progress, *mpb.Bar) {
 	p := mpb.New()
 
-	name := "               Load Monitor:"
+	name := "               Load Module:"
 	// adding a single bar, which will inherit container's width
 	bar := p.AddBar(
 		int64(cnt),

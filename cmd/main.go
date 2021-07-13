@@ -12,11 +12,11 @@ import (
 
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/xflag"
 
-	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/core/state"
+	"github.com/xcphoenix/elf-load-analyser/pkg/ebpf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/env"
 	"github.com/xcphoenix/elf-load-analyser/pkg/factory"
-	_ "github.com/xcphoenix/elf-load-analyser/pkg/modules/module" // import modules
+	_ "github.com/xcphoenix/elf-load-analyser/pkg/module" // import monitor
 	"github.com/xcphoenix/elf-load-analyser/pkg/render"
 	"github.com/xcphoenix/elf-load-analyser/pkg/web"
 )
@@ -29,7 +29,7 @@ func main() {
 	proc.ControlDetach()
 	env.CheckEnv()
 
-	var param = bcc.PreParam{
+	var param = ebpf.PreParam{
 		Path: proc.GetProgPath(),
 	}
 	render.PreAnalyse(&param)

@@ -3,10 +3,10 @@ package factory
 import (
 	"context"
 	log "github.com/sirupsen/logrus"
-	"github.com/xcphoenix/elf-load-analyser/pkg/bcc"
 	"github.com/xcphoenix/elf-load-analyser/pkg/data"
+	"github.com/xcphoenix/elf-load-analyser/pkg/ebpf"
 	"github.com/xcphoenix/elf-load-analyser/pkg/helper"
-	"github.com/xcphoenix/elf-load-analyser/pkg/modules"
+	"github.com/xcphoenix/elf-load-analyser/pkg/monitor"
 	"reflect"
 	"sync"
 	"time"
@@ -14,19 +14,19 @@ import (
 
 type MonitorModuleFactory interface {
 	// 注册模块
-	Register(mm modules.ModuleBuilder)
+	Register(mm monitor.Builder)
 
 	// 加载模块
-	Load(context context.Context, pool *data.Pool, param bcc.PreParam)
+	Load(context context.Context, pool *data.Pool, param ebpf.PreParam)
 }
 
 // 合并模块
-func mergeMonitorBuilders(builders []modules.ModuleBuilder) []modules.ModuleBuilder {
+func mergeMonitorBuilders(builders []monitor.Builder) []monitor.Builder {
 	if len(builders) == 0 {
-		return make([]modules.ModuleBuilder, 0)
+		return make([]monitor.Builder, 0)
 	}
 
-	var type2Builder = make(map[reflect.Type][]modules.ModuleBuilder)
+	var type2Builder = make(map[reflect.Type][]monitor.Builder)
 
 	// 依据类型分类
 	for i := range builders {
@@ -37,7 +37,7 @@ func mergeMonitorBuilders(builders []modules.ModuleBuilder) []modules.ModuleBuil
 	}
 
 	// 对每个类型进行合并操作
-	var mergedBuilders = make([]modules.ModuleBuilder, 0)
+	var mergedBuilders = make([]monitor.Builder, 0)
 	for _, builders := range type2Builder {
 		if len(builders) == 0 {
 			continue
@@ -57,13 +57,13 @@ func mergeMonitorBuilders(builders []modules.ModuleBuilder) []modules.ModuleBuil
 // 初始化模块
 //  param 环境参数信息
 //  builders 监视器模块构建器数组
-func initMonitorModules(param bcc.PreParam,
-	builders []modules.ModuleBuilder) map[modules.MonitorModuleType][]*modules.MonitorModule {
-	var type2MonitorModules = make(map[modules.MonitorModuleType][]*modules.MonitorModule, len(builders))
+func initMonitorModules(param ebpf.PreParam,
+	builders []monitor.Builder) map[monitor.Type][]*monitor.Monitor {
+	var type2MonitorModules = make(map[monitor.Type][]*monitor.Monitor, len(builders))
 
 	for _, builder := range builders {
 		var mm = builder.Build()
-		var mmType = modules.ModuleInit(mm, param)
+		var mmType = monitor.InitMonitor(mm, param)
 		type2MonitorModules[mmType] = append(type2MonitorModules[mmType], mm)
 	}
 
@@ -71,24 +71,24 @@ func initMonitorModules(param bcc.PreParam,
 }
 
 // 执行模块
-//  context: 传递给 `modules.MonitorModule` Resolve 的上下文
+//  context: 传递给 `monitor.Monitor` Resolve 的上下文
 //  param: 环境参数信息
-//  mm: 执行的 `modules.MonitorModule`
+//  mm: 执行的 `monitor.Monitor`
 //  mutex: 关闭模块时需要的锁
 //  pool: 数据池
 func executeMonitor(context context.Context,
-	param bcc.PreParam, mm *modules.MonitorModule,
+	param ebpf.PreParam, mm *monitor.Monitor,
 	mutex sync.Locker,
 	pool *data.Pool) {
-	var monitor = mm.Monitor()
+	var module = mm.Module()
 
-	if helper.IsNil(monitor) {
-		log.Fatalf("MonitorModule %q is not initialized", mm.Name)
+	if helper.IsNil(module) {
+		log.Fatalf("Module %q is not initialized", mm.Name)
 	}
 
-	monitor.PreProcessing(param)
+	module.PreProcessing(param)
 
-	var m = monitor.DoAction()
+	var m = module.DoAction()
 
 	mm.Resolve(context, m, pool.Chan())
 

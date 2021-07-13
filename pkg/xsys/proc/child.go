@@ -100,7 +100,7 @@ func WakeUpChild(childPID int) {
 }
 
 func execProcess(execPath string) {
-	// wait until parent load bcc modules ok
+	// wait until parent load ebpf modules ok
 	startSignals := make(chan os.Signal, 1)
 	signal.Notify(startSignals, syscall.SIGUSR1)
 	<-startSignals
